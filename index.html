@@ -388,6 +388,32 @@
   .diet-tb th,.diet-tb td{ text-align:left; padding:7px 10px; border-bottom:1px solid var(--line);}
   .diet-tb th{ color:var(--muted); font-weight:600; font-size:12px;}
   .diet-tb td:not(:first-child){ color:var(--primary); font-weight:600; white-space:nowrap;}
+  .lv-head{padding:14px 16px}
+  .lv-top{display:flex; justify-content:space-between; align-items:flex-start}
+  .lv-alias{font-size:16px; font-weight:600; color:#0c447c}
+  .lv-title{font-size:20px; font-weight:700; color:#185FA5; margin-top:2px}
+  .lv-num{font-size:12px; color:#5f6b78; background:#eef3fb; padding:4px 10px; border-radius:20px; white-space:nowrap}
+  .lv-xp{margin-top:12px}
+  .lv-streak{margin-top:10px; font-size:13px; color:#6b4f2a}
+  .quest-list{margin-top:6px}
+  .quest-row{display:flex; align-items:center; gap:10px; padding:10px 8px; border-radius:10px; cursor:pointer}
+  .quest-row:hover{background:#f5f8fd}
+  .quest-row.done{opacity:.6}
+  .q-ico{width:26px; height:26px; display:flex; align-items:center; justify-content:center; color:#185FA5}
+  .q-name{flex:1; font-size:14px}
+  .quest-row.done .q-name{color:#5f6b78; text-decoration:line-through}
+  .q-xp{font-size:12px; color:#854f0b; background:#fbeed9; padding:2px 8px; border-radius:10px}
+  .quest-row.done .q-xp{background:#eef1f4; color:#99a6b3}
+  .q-chk{width:22px; height:22px; border-radius:50%; border:2px solid #cdd6e0; display:flex; align-items:center; justify-content:center; color:#185FA5}
+  .quest-row.done .q-chk{border-color:#185FA5; background:#185FA5}
+  .dot{width:10px; height:10px; border-radius:50%; background:#d7dde5; display:inline-block}
+  .boss-list{margin-top:6px}
+  .boss-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 4px; border-bottom:1px solid #f0f2f5}
+  .boss-name{display:flex; align-items:center; gap:8px; font-size:14px; color:#444}
+  .realm-list{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+  .realm{flex:1; min-width:84px; text-align:center; padding:10px 6px; border-radius:10px; background:#f4f6f9; font-size:13px; color:#99a6b3}
+  .realm.on{background:linear-gradient(135deg,#e9f2fd,#dfeafc); color:#185FA5; font-weight:600}
+  .realm span{display:block; font-size:11px; margin-top:3px; opacity:.85}
 </style>
 </head>
 <body>
@@ -417,6 +443,7 @@
       <section class="panel" id="p-updatelog"></section>
       <section class="panel" id="p-me"></section>
       <section class="panel" id="p-tips"></section>
+      <section class="panel" id="p-growth"></section>
     </div>
   </main>
 </div>
@@ -438,7 +465,8 @@ function def(){
       monthlySavings:2000, skinBudget:300, bigWarn:200, notify:false, customRSS:[]
     },
     days:{}, inspiration:{saved:[]}, reviews:{}, reminders:{}, cache:{}, lastFetch:{}, todos:[], inbox:[],
-    meds:[], tips:[], tipsGen:null
+    meds:[], tips:[], tipsGen:null,
+    game:{xp:0, alias:'渡尘客', level:1, history:{}, bossXp:0, streak:0, lastDay:'', justLeveled:false}
   };
 }
 let store=load();
@@ -455,6 +483,7 @@ function ensureV3(s){
   if(s.settings.sidebarCollapsed==null){ s.settings.sidebarCollapsed=false; ch=true; }
   if(s.settings.quickbar==null){ s.settings.quickbar=true; ch=true; }
   if(!s.settings.waterTarget){ s.settings.waterTarget=2000; ch=true; }
+  if(!s.game||!s.game.history){ s.game={xp:0, alias:(s.game&&s.game.alias)||'渡尘客', level:(s.game&&s.game.level)||1, history:{}, bossXp:(s.game&&s.game.bossXp)||0, streak:0, justLeveled:false}; ch=true; }
   return ch;
 }
 function load(){
@@ -472,7 +501,7 @@ function load(){
   }catch(e){}
   return d;
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(store)); }
+function save(){ if(store.game&&!store.game.history) store.game.history={}; recordDay(); localStorage.setItem(KEY, JSON.stringify(store)); }
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function day(d){ d=d||todayStr(); if(!store.days[d]) store.days[d]={}; if(!store.days[d].expenses) store.days[d].expenses=[]; return store.days[d]; }
 function $(s){return document.querySelector(s);}
@@ -541,13 +570,14 @@ const NAV=[
   {tab:'insp', name:'灵感', icon:'bulb'},
   {tab:'ai', name:'AI帮手', icon:'spark'},
   {tab:'tips', name:'建议', icon:'target'},
+  {tab:'growth', name:'成长', icon:'star'},
   {tab:'review', name:'复盘', icon:'doc'},
   {tab:'report', name:'报表', icon:'chart'},
   {tab:'updatelog', name:'更新', icon:'flag'},
   {tab:'me', name:'我的', icon:'gear'}
 ];
 const GOAL_TABS=['fit','posture','english','skin','finance'];
-const TOOL_TABS=['todo','inbox','insp','ai','tips','review','report','updatelog','me'];
+const TOOL_TABS=['todo','inbox','insp','ai','tips','growth','review','report','updatelog','me'];
 const BOTTOM=['overview','todo','inbox','me'];
 
 function navBtn(t){
@@ -642,7 +672,7 @@ function rerender(){
   ({overview:renderOverview, todo:renderTodo,
     fit:()=>renderGoalPage('fit'), posture:()=>renderGoalPage('posture'),
     english:()=>renderGoalPage('english'), skin:renderSkin, finance:()=>renderGoalPage('finance'),
-    inbox:renderInbox, insp:renderInsp, ai:renderAI, tips:renderTips, review:renderReview,
+    inbox:renderInbox, insp:renderInsp, ai:renderAI, tips:renderTips, growth:renderGrowth, review:renderReview,
     report:renderReport, updatelog:renderChangelog, me:renderMe
   }[currentTab]||renderOverview)();
 }
@@ -799,12 +829,162 @@ function goalDone(g,d){
   return m[g]? !!m[g]() : false;
 }
 
+/* ============ 成长 · 渡劫 升级系统 ============ */
+const REALM=['炼气期','筑基期','金丹期','元婴期','化神期','炼虚期','合体期','大乘期','渡劫飞升'];
+function tri(L){ return 100*L*(L+1)/2; }
+function levelInfo(xp){
+  let L=1; while(tri(L)<=xp) L++;
+  const lo=tri(L-1), hi=tri(L);
+  const cur=xp-lo, need=hi-lo;
+  const pct=Math.max(0,Math.min(100,Math.round(cur/need*100)));
+  const ri=Math.min(REALM.length-1, Math.floor((L-1)/3));
+  const stage=['·初期','·中期','·后期'][(L-1)%3];
+  return {level:L, title:REALM[ri]+stage, cur, need, pct, realm:REALM[ri]};
+}
+function gameXp(){ let x=0; const h=store.game.history||{}; for(const k in h) x+=(+h[k]||0); x+=(store.game.bossXp||0); return x; }
+function dailyQuests(){
+  const d=day(); const s=store.settings;
+  const qs=[
+    {k:'fit', name:'健身训练', icon:'run', xp:30, done:!!d.fit_done},
+    {k:'posture', name:'体态矫正', icon:'posture', xp:20, done:(+d.pos_min||0)>0},
+    {k:'skin', name:'早晚分区护肤', icon:'skin', xp:25, done:!!(d.sk_am&&d.sk_pm)},
+    {k:'english', name:'英语口语', icon:'speak', xp:20, done:!!d.en_speak},
+    {k:'finance', name:'记账储蓄', icon:'coin', xp:20, done:(+d.save_today||0)>0},
+    {k:'water', name:'饮水达标', icon:'water', xp:10, done:((d.water_ml||0)>=(s.waterTarget||2000))||!!d.water_done},
+    {k:'sleep', name:'按时入睡', icon:'moon', xp:15, done:!!d.sleep_done}
+  ];
+  const todos=(store.todos||[]);
+  if(todos.length) qs.push({k:'todo', name:'今日待办 '+todos.filter(t=>t.done).length+'/'+todos.length, icon:'list', xp:10, done:todos.every(t=>t.done)});
+  return qs;
+}
+function todayXp(){ return dailyQuests().reduce((a,q)=>a+(q.done?q.xp:0),0); }
+function dailyPct(){ const q=dailyQuests(); return Math.round(q.filter(x=>x.done).length/q.length*100); }
+function bumpLevel(){
+  const nl=levelInfo(gameXp()).level;
+  if(nl>(store.game.level||1)){ store.game.level=nl; store.game.justLeveled=true; }
+  else store.game.level=nl;
+}
+function recordDay(){
+  if(!store.game.history) store.game.history={};
+  store.game.history[todayStr()]=todayXp();
+  let st=0; const dt=new Date();
+  for(let i=0;i<400;i++){
+    const k=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+    if((store.game.history[k]||0)<=0) break; st++; dt.setDate(dt.getDate()-1);
+  }
+  store.game.streak=st;
+  bumpLevel();
+}
+function toggleQuest(key){
+  const prev=dailyQuests().find(q=>q.k===key);
+  if(!prev) return;
+  const d=day();
+  if(key==='fit') d.fit_done=!d.fit_done;
+  else if(key==='posture') d.pos_min=d.pos_min>0?0:15;
+  else if(key==='skin'){ const on=!!(d.sk_am&&d.sk_pm); d.sk_am=!on; d.sk_pm=!on; }
+  else if(key==='english') d.en_speak=!d.en_speak;
+  else if(key==='finance') d.save_today=d.save_today>0?0:10;
+  else if(key==='water') d.water_done=!d.water_done;
+  else if(key==='sleep') d.sleep_done=!d.sleep_done;
+  else if(key==='todo'){ const all=(store.todos||[]).every(t=>t.done); (store.todos||[]).forEach(t=>t.done=!all); }
+  save();
+  const now=dailyQuests().find(q=>q.k===key);
+  if(now && !prev.done && now.done) toast('🔥 击破 '+prev.name+'  +'+prev.xp+' 经验');
+  else if(now && prev.done && !now.done) toast('已撤销 '+prev.name);
+  if(store.game.justLeveled) showLevelUp();
+  if(currentTab==='overview') renderOverview();
+  else if(currentTab==='growth') renderGrowth();
+  else if(currentTab==='todo') renderTodo();
+}
+function showLevelUp(){
+  const li=levelInfo(gameXp());
+  store.game.justLeveled=false; save();
+  showModal('<div style="text-align:center">'+
+    '<div style="font-size:46px;line-height:1">⚡</div>'+
+    '<h2 style="margin:6px 0">渡劫成功！</h2>'+
+    '<p class="muted">你已晋升至</p>'+
+    '<div style="font-size:22px;font-weight:600;color:var(--primary);margin:6px 0">'+li.title+'</div>'+
+    '<p class="muted" style="font-size:13px">第 '+li.level+' 重境界 · 再累积 '+(li.need-li.cur)+' 经验突破至下一阶</p>'+
+    '<button class="btn" style="margin-top:14px" onclick="closeModal()">继续修行</button></div>');
+}
+function ringSvg(pct,color){
+  const r=52, c=2*Math.PI*r, off=c*(1-pct/100);
+  return '<svg viewBox="0 0 140 140" width="140" height="140">'+
+    '<circle cx="70" cy="70" r="'+r+'" fill="none" stroke="#eef1f4" stroke-width="12"/>'+
+    '<circle cx="70" cy="70" r="'+r+'" fill="none" stroke="'+(color||'#185FA5')+'" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+c+'" stroke-dashoffset="'+off+'" transform="rotate(-90 70 70)"/>'+
+    '<text x="70" y="66" text-anchor="middle" font-size="30" font-weight="600" fill="#0c447c">'+pct+'%</text>'+
+    '<text x="70" y="88" text-anchor="middle" font-size="12" fill="#888">今日完成</text></svg>';
+}
+function questRowsHtml(){
+  const qs=dailyQuests();
+  return '<div class="quest-list">'+qs.map(q=>
+    '<div class="quest-row'+(q.done?' done':'')+'" onclick="toggleQuest(\''+q.k+'\')">'+
+      '<span class="q-ico">'+si(q.icon)+'</span>'+
+      '<span class="q-name">'+q.name+'</span>'+
+      '<span class="q-xp">+'+(q.done?0:q.xp)+'</span>'+
+      '<span class="q-chk">'+(q.done?si('check'):'<span class="dot"></span>')+'</span>'+
+    '</div>').join('')+'</div>';
+}
+function growthHeaderHtml(){
+  const li=levelInfo(gameXp()); const alias=store.game.alias||'渡尘客';
+  return '<div class="lv-top"><div><div class="lv-alias">'+esc(alias)+'</div>'+
+      '<div class="lv-title">'+li.title+'</div></div>'+
+      '<div class="lv-num">第 '+li.level+' 重</div></div>'+
+    '<div class="lv-xp"><div class="bar"><i style="width:'+li.pct+'%"></i></div>'+
+      '<div class="water-stat"><span>'+li.cur+' / '+li.need+' 经验</span><span>距下阶还差 '+(li.need-li.cur)+'</span></div></div>'+
+    '<div class="lv-streak">🔥 连续修行 '+store.game.streak+' 天 · 累计 '+gameXp()+' 经验</div>';
+}
+function radarSvg(){
+  const boards=['fit','posture','english','skin','finance'];
+  const wk=lastNDays(7);
+  const vals=boards.map(g=>{ let n=0,dn=0; wk.forEach(k=>{ const d=store.days[k]; if(d){ dn++; if(goalDone(g,d)) n++; } }); return dn?n/dn:0; });
+  const cx=110, cy=110, R=80, N=5;
+  const pt=(i,rad)=>{ const a=-Math.PI/2 + i*2*Math.PI/N; return [cx+rad*Math.cos(a), cy+rad*Math.sin(a)]; };
+  let grid=''; for(let g=1;g<=4;g++){ const rr=R*g/4; let p=''; for(let i=0;i<N;i++){ const x=pt(i,rr); p+=(i?' ':'')+x[0].toFixed(1)+','+x[1].toFixed(1); } grid+='<polygon points="'+p+'" fill="none" stroke="#e3e8ee" stroke-width="1"/>'; }
+  let data=''; for(let i=0;i<N;i++){ const x=pt(i,R*vals[i]); data+=(i?' ':'')+x[0].toFixed(1)+','+x[1].toFixed(1); }
+  let labels=''; const names=['健身','体态','英语','护肤','理财']; for(let i=0;i<N;i++){ const x=pt(i,R+18); labels+='<text x="'+x[0].toFixed(1)+'" y="'+(x[1]+4).toFixed(1)+'" text-anchor="middle" font-size="11" fill="#5f6b78">'+names[i]+'</text>'; }
+  return '<svg viewBox="0 0 220 220" width="100%" height="220">'+grid+
+    '<polygon points="'+data+'" fill="rgba(24,95,165,.18)" stroke="#185FA5" stroke-width="2"/>'+
+    vals.map((v,i)=>{ const x=pt(i,R*v); return '<circle cx="'+x[0].toFixed(1)+'" cy="'+x[1].toFixed(1)+'" r="3" fill="#185FA5"/>'; }).join('')+labels+'</svg>';
+}
+function xpAreaSvg(){
+  const days=lastNDays(14); const h=store.game.history||{};
+  const vals=days.map(k=>+(h[k]||0));
+  const max=Math.max(10,...vals), W=300, H=90, n=vals.length;
+  const X=i=> 8 + i*(W-16)/(n-1), Y=v=> H-8 - v/max*(H-20);
+  let line=''; vals.forEach((v,i)=>{ line+=(i?' L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1); });
+  const area='M'+X(0).toFixed(1)+' '+(H-8)+' '+vals.map((v,i)=>'L'+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join(' ')+' L'+X(n-1).toFixed(1)+' '+(H-8)+' Z';
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'"><path d="'+area+'" fill="rgba(24,95,165,.12)"/><path d="'+line+'" fill="none" stroke="#185FA5" stroke-width="2" stroke-linejoin="round"/></svg>';
+}
+function bossHtml(){
+  const live=(store.tips||[]).filter(x=>!x.state||x.state==='new'||x.state==='doing');
+  if(!live.length) return '<div class="tip-empty">'+si('check')+'本周没有待斩的“心魔”，保持得很好。</div>';
+  return '<div class="boss-list">'+live.slice(0,5).map(x=>
+    '<div class="boss-row"><span class="boss-name">'+si('target')+esc(x.t)+'</span>'+
+      '<button class="btn ghost sm" onclick="setTipState(\''+x.id+'\',\'done\')">斩破心魔</button></div>').join('')+'</div>';
+}
+function renderGrowth(){
+  const li=levelInfo(gameXp());
+  let html='<div class="card lv-head">'+growthHeaderHtml()+'</div>';
+  html+='<div class="card" style="text-align:center"><div class="sub">今日修炼完成度</div>'+ringSvg(dailyPct())+
+    '<div class="muted" style="font-size:13px">还差 '+(dailyQuests().filter(q=>!q.done).length)+' 项即可圆满今日</div></div>';
+  html+='<div class="card"><h2>'+si('list')+'今日修炼清单</h2><div class="sub">点一下即完成，击破日常小怪 +经验</div>'+questRowsHtml()+'</div>';
+  html+='<div class="card"><h2>'+si('chart')+'五维修为（近7天）</h2>'+radarSvg()+'</div>';
+  html+='<div class="card"><h2>'+si('spark')+'经验轨迹（近14天）</h2>'+xpAreaSvg()+'</div>';
+  html+='<div class="card"><h2>'+si('target')+'本周心魔（改进任务）</h2><div class="sub">来自建议中心，斩破一条 +50 经验</div>'+bossHtml()+'</div>';
+  html+='<div class="card"><h2>'+si('star')+'境界阶梯</h2><div class="realm-list">'+REALM.map((r,i)=>{ const L=i*3+1; const cur=li.level>=L; return '<div class="realm'+(cur?' on':'')+'">'+r+'<span>'+(cur?'已至':'未达')+'</span></div>'; }).join('')+'</div></div>';
+  $('#p-growth').innerHTML=html;
+  if(store.game.justLeveled) showLevelUp();
+}
+
 /* ============ 总览 ============ */
 function renderOverview(){
   const d=day(); const s=store.settings;
   const waterMl=d.water_ml||0; const pct=Math.min(100,Math.round(waterMl/s.waterTarget*100));
   const xue=dailyXue();
+  const gp=dailyPct(); const gq=dailyQuests().filter(q=>!q.done).length;
   let html='';
+  if(gp<100) html+='<div class="card" style="background:linear-gradient(135deg,#fff4e6,#ffe9cf);border-left:4px solid var(--accent)"><div class="spread"><b style="font-size:15px">⚔️ 今日修炼 '+gp+'%</b><span class="muted">差 '+gq+' 项渡劫在即</span></div><button class="btn ghost sm" style="margin-top:8px" onclick="switchTab(\'growth\')">'+si('star')+' 去修炼</button></div>';
   html+='<div class="card" style="background:linear-gradient(135deg,#fbf3e8,#f7e9d6);border-left:4px solid var(--accent)">'+
     '<div class="spread"><h2 style="margin:0">'+si('spark')+'今日·薛之谦</h2><span class="muted" style="font-size:11px">《'+xue.s+'》</span></div>'+
     '<p style="font-size:15px;line-height:1.7;margin:9px 0 4px;color:#6b4f2a;font-style:italic">“'+xue.t+'”</p>'+
@@ -843,6 +1023,10 @@ function renderOverview(){
       '<span class="pill" style="background:'+(done?'var(--primary-soft)':'#eef1f4')+';color:'+(done?'var(--primary)':'#99a6b3')+'">'+(done?'已打卡':'待完成')+'</span></div>';
   });
   html+='</div>';
+  html+='<div class="card"><div class="spread"><h2>'+si('star')+'成长 · 渡劫</h2><button class="btn ghost sm" onclick="switchTab(\'growth\')">查看</button></div>'+
+    '<div class="sub">'+esc(store.game.alias||'渡尘客')+' · 当前 '+levelInfo(gameXp()).title+'</div>'+
+    '<div class="bar" style="margin-top:8px"><i style="width:'+levelInfo(gameXp()).pct+'%"></i></div>'+
+    '<div class="water-stat"><span>'+levelInfo(gameXp()).cur+' / '+levelInfo(gameXp()).need+' 经验</span><span>第 '+levelInfo(gameXp()).level+' 重</span></div></div>';
   const p=$('#p-overview'); p.innerHTML=html;
 }
 
@@ -950,6 +1134,7 @@ function pushMorning(){
   if(!d.save_today) items.push('存入今日储蓄');
   items.push('饮水 '+s.waterTarget+'ml（分段）');
   items.push(s.bedGoal+' 前入睡');
+  items.unshift('今日修炼完成度 '+dailyPct()+'%，还差 '+dailyQuests().filter(q=>!q.done).length+' 项即可渡劫圆满');
   showModal('<h3>'+si('sun')+' 晨间推送</h3><p class="muted">'+esc(s.name)+'，今天也要稳步蜕变。</p>'+
     '<div style="line-height:2">'+items.map(i=>'· '+i).join('<br>')+'</div>'+
     '<button class="btn" style="margin-top:14px" onclick="closeModal()">收到</button>');
@@ -1763,7 +1948,9 @@ function renderTips(){
 }
 function setTipState(id,st){
   const x=(store.tips||[]).find(t=>t.id===id); if(!x) return;
+  if(st==='done' && x.state!=='done'){ store.game.bossXp=(store.game.bossXp||0)+50; }
   x.state=st; save(); renderTips();
+  if(store.game.justLeveled) showLevelUp();
   toast(st==='done'?'已标记执行':st==='ignored'?'已忽略':'已恢复');
 }
 function refreshTips(){
@@ -1820,6 +2007,7 @@ function renderMe(){
   const s=store.settings;
   let html='<div class="card"><h2>'+si('gear')+'目标设置</h2>'+
     textField('name','称呼',s.name)+
+    '<div class="field"><label>修行道号（成长系统昵称）</label><input type="text" id="aliasInp" class="txt" value="'+esc(store.game.alias||'渡尘客')+'"></div>'+
     numField('waterTarget','每日饮水目标',null,s.waterTarget,'ml')+
     '<div class="flex" style="gap:8px">'+
       '<div class="field" style="flex:1"><label>入睡目标</label><input type="time" class="txt" data-k="bedGoal" value="'+s.bedGoal+'"></div>'+
@@ -1856,6 +2044,7 @@ function renderMe(){
   const p=$('#p-me'); p.innerHTML=html;
   p.querySelectorAll('input.txt,select.txt').forEach(i=>i.addEventListener('input',e=>{ s[i.dataset.k]=i.value; }));
   p.querySelectorAll('input.num').forEach(i=>i.addEventListener('input',e=>{ s[i.dataset.k]=+i.value||0; }));
+  const al=$('#aliasInp'); if(al) al.addEventListener('input',()=>{ store.game.alias=al.value; });
 }
 function saveSettings(){ save(); toast('设置已保存'); }
 function addRSS(){ const ch=$('#rssCh').value, url=$('#rssUrl').value.trim();
@@ -1889,6 +2078,7 @@ function mergeOrReplaceStore(s){
 /* ============ 启动 ============ */
 function init(){
   buildNav();
+  recordDay();
   if(!store.medsSeeded){ store.meds=MED_TEMPLATE.map(m=>Object.assign({},m)); store.medsSeeded=true; save(); }
   const now=new Date(); const h=now.getHours();
   const g=h<11?'早安':h<14?'午安':h<18?'下午好':'晚安';
