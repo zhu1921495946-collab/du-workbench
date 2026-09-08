@@ -496,7 +496,8 @@
       <section class="panel active" id="p-overview"></section>
       <section class="panel" id="p-todo"></section>
       <section class="panel" id="p-fit"></section>
-      <section class="panel" id="p-posture"></section>
+      <!-- 扩展点：体态矫正（posture）面板已于 2026-09-08 移除，
+           恢复方法见脚本中 MODULE_GATES.posture 的说明第 2 步。 -->
       <section class="panel" id="p-english"></section>
       <section class="panel" id="p-skin"></section>
       <section class="panel" id="p-finance"></section>
@@ -593,7 +594,8 @@ const ICONS={
   sun:'<path d="M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M18.4 5.6l1.4-1.4M4.2 19.8l1.4-1.4"/><circle cx="12" cy="12" r="4"/>',
   moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>',
   run:'<circle cx="15" cy="4.5" r="1.8"/><path d="M13 9l-3 2 2 3 2 5M13 9l4 1 2 3M10 11l-3 1-2 4M13 9l-2-3"/>',
-  posture:'<circle cx="12" cy="4.5" r="1.8"/><path d="M12 6.5V14M12 14l-4 6M12 14l4 3M9 9h6"/>',
+  /* 扩展点：体态矫正恢复时补回 posture 图标：
+     '<circle cx="12" cy="4.5" r="1.8"/><path d="M12 6.5V14M12 14l-4 6M12 14l4 3M9 9h6"/>' */
   speak:'<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 8a5 5 0 0 1 0 8M19.5 5.5a9 9 0 0 1 0 13"/>',
   skin:'<path d="M9 3h6v3l-1 2 2 2v4l-2 3H9l-2-3v-4l2-2-1-2z"/><path d="M9 3c0-1 1-1 1-1"/>',
   coin:'<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5a2 2 0 0 1 2.5-1.5c1.5 0 2 1 2 1.5S13.5 12 12 12s-2.5.8-2.5 2 1 1.5 2.5 1.5a2 2 0 0 0 2.5-1.5"/>',
@@ -644,7 +646,7 @@ const NAV=[
   {tab:'overview', name:'今日', icon:'sun'},
   {tab:'todo', name:'清单', icon:'list'},
   {tab:'fit', name:'健身', icon:'run'},
-  {tab:'posture', name:'体态', icon:'posture'},
+  /* 扩展点：体态矫正（posture）导航项已移除，恢复方法见下方 MODULE_GATES.posture */
   {tab:'english', name:'英语', icon:'speak'},
   {tab:'skin', name:'护肤', icon:'skin'},
   {tab:'finance', name:'理财', icon:'coin'},
@@ -658,9 +660,59 @@ const NAV=[
   {tab:'updatelog', name:'更新', icon:'flag'},
   {tab:'me', name:'我的', icon:'gear'}
 ];
-const GOAL_TABS=['fit','posture','english','skin','finance'];
+const GOAL_TABS=['fit','english','skin','finance'];
 const TOOL_TABS=['todo','inbox','insp','ai','tips','growth','review','report','updatelog','me'];
 const BOTTOM=['overview','todo','inbox','me'];
+
+/* ================= 功能模块开关 / 扩展点 =================
+ * 说明：已下线但保留扩展点的模块登记于此，避免"删了就找不到回去的路"。
+ *
+ * 【体态矫正 posture —— 已于 2026-09-08 下线】
+ *   下线原因：独立打卡模块带来的价值有限，使用体验偏鸡肋。
+ *   重新引入计划：待用户通过「无氧训练」模式沉淀足够的训练数据、
+ *     并达成阶段性矫正目标后，以更贴合训练数据的方式重新接入
+ *     （思路：由无氧/力量训练记录自动派生体态练习建议，而非让用户再单独打卡一个模块）。
+ *
+ *   恢复步骤（按顺序补齐即可）：
+ *     1) ICONS 补回 posture 图标（<circle cx="12" cy="4.5" r="1.8"/><path d="M12 6.5V14M12 14l-4 6M12 14l4 3M9 9h6"/>）
+ *     2) NAV 与 GOAL_TABS 恢复 'posture'，并在 HTML 面板区补回 <section class="panel" id="p-posture">
+ *     3) GOALS 补回 posture 配置：name/icon/channel/reviewKey:'pos_r'/checkin(pos_check,pos_min,pos_wall,pos_walk)/trend
+ *     4) rerender() 补回 posture:()=>renderGoalPage('posture')
+ *     5) goalDone() 补回 posture:()=>(+d.pos_min||0)>0；dailyQuests() 与 toggleQuest() 补回 posture 任务
+ *     6) radarSvg() 的 boards / names 补回 'posture' / '体态'（四维自动变回五维）
+ *     7) renderOverview() 目标总览列表与晨间 pill、renderReview() 体态复盘卡片补回
+ *     8) CHANNELS / SEED 补回 posture 灵感频道；buildTips() 补回体态练习提醒
+ *     9) GOAL_TMPL 可选择性补回体态目标拆解模板
+ *
+ *   历史数据：本次下线**未删除任何历史数据**。
+ *     store.days[日期].pos_check / pos_min / pos_wall / pos_walk 与 store.reviews[日期].pos_r
+ *     仍完整保留在本机 localStorage 中，重新接入后可直接读取复用。
+ * ======================================================== */
+const MODULE_GATES={
+  posture:{
+    enabled:false,                 // ← 重新接入时改为 true 并补齐上述 1~9 步
+    offlineAt:'2026-09-08',
+    reason:'价值有限、体验鸡肋，作为独立模块下线',
+    plannedReturn:'基于「无氧训练」数据达成阶段性矫正目标后，以训练数据驱动的形式重新接入',
+    gate:()=>anaerobicTrainingReady()
+  }
+};
+/* 扩展点：无氧训练数据就绪判定（体态矫正重新接入的门禁）。
+ * 现状：健身模块目前只用自由文本 fit_proj 记录训练项目（如"爬楼机40min + 核心"），
+ *       尚未结构化区分有氧/无氧，因此当前恒返回 false。
+ * 后续接入方案（择一）：
+ *   A) 在 GOALS.fit.checkin 新增 fit_mode 字段（'aerobic' | 'anaerobic'），
+ *      统计近 N 天无氧训练天数 / 总时长，达到阈值即返回 true；
+ *   B) 不新增字段，解析 fit_proj 文本中的力量/无氧关键词（深蹲、硬拉、卧推、核心、器械等）进行归类统计。
+ * 返回 true 后，MODULE_GATES.posture.gate() 通过，体态矫正模块即可放行。 */
+function anaerobicTrainingReady(){
+  // TODO(无氧训练接入后实现)：统计无氧训练达标情况，达标返回 true。
+  // const wk=lastNDays(30);
+  // const anaerobicDays=wk.filter(k=>{ const d=store.days[k]; return d && (d.fit_mode==='anaerobic' || /深蹲|硬拉|卧推|器械|力量|核心/.test(d.fit_proj||'')); }).length;
+  // return anaerobicDays>=12;  // 示例阈值：近30天累计12天无氧训练
+  return false;
+}
+function isModuleEnabled(tab){ const g=MODULE_GATES[tab]; return g? !!g.enabled : true; }
 
 function navBtn(t){
   const n=NAV.find(x=>x.tab===t);
@@ -744,6 +796,13 @@ function closeDrawer(){ $('#drawer').classList.remove('show'); $('#drawerMask').
 
 let currentTab='overview';
 function switchTab(name){
+  /* 扩展点：已下线模块（见 MODULE_GATES）在此拦截，
+     避免旧入口/残留状态把用户带进不存在的页面；模块恢复后会自动放行。 */
+  if(!isModuleEnabled(name)){
+    const g=MODULE_GATES[name];
+    toast((g&&g.plannedReturn)||'该模块已下线');
+    name='overview';
+  }
   currentTab=name;
   document.querySelectorAll('.sidebar button,.drawer button,.bottom-nav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===name));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -752,7 +811,8 @@ function switchTab(name){
 }
 function rerender(){
   ({overview:renderOverview, todo:renderTodo,
-    fit:()=>renderGoalPage('fit'), posture:()=>renderGoalPage('posture'),
+    fit:()=>renderGoalPage('fit'),
+    /* 扩展点：体态矫正恢复时在此补回 posture:()=>renderGoalPage('posture'), */
     english:()=>renderGoalPage('english'), skin:renderSkin, finance:()=>renderGoalPage('finance'),
     inbox:renderInbox, insp:renderInsp, ai:renderAI, tips:renderTips, growth:renderGrowth, review:renderReview,
     report:renderReport, updatelog:renderChangelog, me:renderMe
@@ -811,21 +871,8 @@ const GOALS={
     },
     extra:function(d,s){ return renderDietCard(); },
     },
-  posture:{name:'体态',icon:'posture',channel:'posture',reviewKey:'pos_r',
-    reviewLabel:'体态专项复盘', reviewHint:'久坐坏习惯频次 / 矫正练习效果，日常提醒方案',
-    quote:'我能送你回家吗，可能外面要下雨啦 —— 薛之谦《绅士》',
-    checkin:[
-      {k:'pos_check',t:'体态自查次数',h:'久坐驼背/低头/站姿',type:'num',unit:'次'},
-      {k:'pos_min',t:'矫正练习时长',unit:'分钟',type:'num'},
-      {k:'pos_wall',t:'靠墙站立/收下巴练习',type:'check'},
-      {k:'pos_walk',t:'走路头顶提起（沉肩）',type:'check'}
-    ],
-    trend:function(){
-      const wk=lastNDays(7);
-      let h='<div class="muted" style="margin-bottom:6px">近7天矫正练习时长（分钟）</div>'+trendBars(wk,'pos_min','#3b7dd8');
-      h+='<div class="flex wrap" style="gap:8px;margin-top:10px"><span class="pill">7天均自查 '+avg(wk,'pos_check')+'次</span><span class="pill">7天均矫正 '+avg(wk,'pos_min')+'min</span></div>';
-      return h;
-    }},
+  /* 扩展点：体态矫正（posture）目标配置已移除，恢复字段见 MODULE_GATES.posture 说明第 3 步。
+     注意：历史打卡数据 pos_check / pos_min / pos_wall / pos_walk 未删除，重新接入后可直接读取。 */
   english:{name:'英语口语',icon:'speak',channel:'english',reviewKey:'en_r',
     reviewLabel:'英语口语专项复盘', reviewHint:'口语流利度 / 遗忘知识点，调整学习时段与方法',
     quote:'我有点疼但是我还能忍，是不是爱你我算还有点天份 —— 薛之谦《天份》',
@@ -907,7 +954,8 @@ function count(days,key){ return days.filter(k=>store.days[k]&&store.days[k][key
 function sum(days,key){ if(key==='expenses'){ let s=0; days.forEach(k=>(store.days[k]?.expenses||[]).forEach(e=>s+=(+e.amt||0))); return s.toFixed(0);} let s=0; days.forEach(k=>{const d=store.days[k]; if(d&&d[key])s+=+d[key];}); return s.toFixed(0); }
 
 function goalDone(g,d){
-  const m={fit:()=>d.fit_done, posture:()=>(+d.pos_min||0)>0, english:()=>d.en_speak, skin:()=>d.sk_am&&d.sk_pm, finance:()=>(+d.save_today||0)>0};
+  /* 扩展点：体态矫正恢复时补回 posture:()=>(+d.pos_min||0)>0 */
+  const m={fit:()=>d.fit_done, english:()=>d.en_speak, skin:()=>d.sk_am&&d.sk_pm, finance:()=>(+d.save_today||0)>0};
   return m[g]? !!m[g]() : false;
 }
 
@@ -928,7 +976,7 @@ function dailyQuests(){
   const d=day(); const s=store.settings;
   const qs=[
     {k:'fit', name:'健身训练', icon:'run', xp:30, done:!!d.fit_done},
-    {k:'posture', name:'体态矫正', icon:'posture', xp:20, done:(+d.pos_min||0)>0},
+    /* 扩展点：体态矫正恢复时补回 {k:'posture', name:'体态矫正', icon:'posture', xp:20, done:(+d.pos_min||0)>0} */
     {k:'skin', name:'早晚分区护肤', icon:'skin', xp:25, done:!!(d.sk_am&&d.sk_pm)},
     {k:'english', name:'英语口语', icon:'speak', xp:20, done:!!d.en_speak},
     {k:'finance', name:'记账储蓄', icon:'coin', xp:20, done:(+d.save_today||0)>0},
@@ -962,7 +1010,7 @@ function toggleQuest(key){
   if(!prev) return;
   const d=day();
   if(key==='fit') d.fit_done=!d.fit_done;
-  else if(key==='posture') d.pos_min=d.pos_min>0?0:15;
+  /* 扩展点：体态矫正恢复时补回 else if(key==='posture') d.pos_min=d.pos_min>0?0:15; */
   else if(key==='skin'){ const on=!!(d.sk_am&&d.sk_pm); d.sk_am=!on; d.sk_pm=!on; }
   else if(key==='english') d.en_speak=!d.en_speak;
   else if(key==='finance') d.save_today=d.save_today>0?0:10;
@@ -1017,14 +1065,15 @@ function growthHeaderHtml(){
     '<div class="lv-streak">🔥 连续修行 '+store.game.streak+' 天 · 累计 '+gameXp()+' 经验</div>';
 }
 function radarSvg(){
-  const boards=['fit','posture','english','skin','finance'];
+  /* 扩展点：体态矫正恢复时在 boards 补回 'posture'、names 补回 '体态'（四维自动变回五维） */
+  const boards=['fit','english','skin','finance'];
   const wk=lastNDays(7);
   const vals=boards.map(g=>{ let n=0,dn=0; wk.forEach(k=>{ const d=store.days[k]; if(d){ dn++; if(goalDone(g,d)) n++; } }); return dn?n/dn:0; });
-  const cx=110, cy=110, R=80, N=5;
+  const cx=110, cy=110, R=80, N=boards.length;
   const pt=(i,rad)=>{ const a=-Math.PI/2 + i*2*Math.PI/N; return [cx+rad*Math.cos(a), cy+rad*Math.sin(a)]; };
   let grid=''; for(let g=1;g<=4;g++){ const rr=R*g/4; let p=''; for(let i=0;i<N;i++){ const x=pt(i,rr); p+=(i?' ':'')+x[0].toFixed(1)+','+x[1].toFixed(1); } grid+='<polygon points="'+p+'" fill="none" stroke="#e3e8ee" stroke-width="1"/>'; }
   let data=''; for(let i=0;i<N;i++){ const x=pt(i,R*vals[i]); data+=(i?' ':'')+x[0].toFixed(1)+','+x[1].toFixed(1); }
-  let labels=''; const names=['健身','体态','英语','护肤','理财']; for(let i=0;i<N;i++){ const x=pt(i,R+18); labels+='<text x="'+x[0].toFixed(1)+'" y="'+(x[1]+4).toFixed(1)+'" text-anchor="middle" font-size="11" fill="#5f6b78">'+names[i]+'</text>'; }
+  let labels=''; const names=['健身','英语','护肤','理财']; for(let i=0;i<N;i++){ const x=pt(i,R+18); labels+='<text x="'+x[0].toFixed(1)+'" y="'+(x[1]+4).toFixed(1)+'" text-anchor="middle" font-size="11" fill="#5f6b78">'+names[i]+'</text>'; }
   return '<svg viewBox="0 0 220 220" width="100%" height="220">'+grid+
     '<polygon points="'+data+'" fill="rgba(24,95,165,.18)" stroke="#185FA5" stroke-width="2"/>'+
     vals.map((v,i)=>{ const x=pt(i,R*v); return '<circle cx="'+x[0].toFixed(1)+'" cy="'+x[1].toFixed(1)+'" r="3" fill="#185FA5"/>'; }).join('')+labels+'</svg>';
@@ -1051,7 +1100,7 @@ function renderGrowth(){
   html+='<div class="card" style="text-align:center"><div class="sub">今日修炼完成度</div>'+ringSvg(dailyPct())+
     '<div class="muted" style="font-size:13px">还差 '+(dailyQuests().filter(q=>!q.done).length)+' 项即可圆满今日</div></div>';
   html+='<div class="card"><h2>'+si('list')+'今日修炼清单</h2><div class="sub">点一下即完成，击破日常小怪 +经验</div>'+questRowsHtml()+'</div>';
-  html+='<div class="card"><h2>'+si('chart')+'五维修为（近7天）</h2>'+radarSvg()+'</div>';
+  html+='<div class="card"><h2>'+si('chart')+'各维度修为（近7天）</h2>'+radarSvg()+'</div>';
   html+='<div class="card"><h2>'+si('spark')+'经验轨迹（近14天）</h2>'+xpAreaSvg()+'</div>';
   html+='<div class="card"><h2>'+si('target')+'本周心魔（改进任务）</h2><div class="sub">来自建议中心，斩破一条 +50 经验</div>'+bossHtml()+'</div>';
   html+='<div class="card"><h2>'+si('star')+'境界阶梯</h2><div class="realm-list">'+REALM.map((r,i)=>{ const L=i*3+1; const cur=li.level>=L; return '<div class="realm'+(cur?' on':'')+'">'+r+'<span>'+(cur?'已至':'未达')+'</span></div>'; }).join('')+'</div></div>';
@@ -1069,7 +1118,7 @@ function renderOverview(){
   html+='<div class="card"><h2>'+si('sun')+'晨间推送 · 今日待办</h2>'+
     '<div class="sub">'+esc(s.name)+'，这是今天的蜕变清单</div>'+
     '<div class="flex wrap" style="gap:8px">'+
-      '<span class="pill">健身训练</span><span class="pill">体态矫正</span><span class="pill">英语口语</span>'+
+      '<span class="pill">健身训练</span><span class="pill">英语口语</span>'+
       '<span class="pill">护肤流程</span><span class="pill">记账储蓄</span>'+
       '<span class="pill">饮水 '+pct+'%</span><span class="pill">睡眠 '+s.bedGoal+'前</span></div>'+
     '<div class="flex" style="margin-top:11px; gap:8px">'+
@@ -1087,7 +1136,8 @@ function renderOverview(){
     '</div>'+
     '<p class="muted" style="margin-top:9px">点一次 = 一杯 '+s.cupSize+' ml；500 ml 为大瓶/运动补水。</p></div>';
   html+='<div class="card"><h2>'+si('target')+'今日目标总览</h2><div class="sub">点击进入各目标详情，逐项细致打卡</div>';
-  ['fit','posture','english','skin','finance'].forEach(g=>{
+  /* 扩展点：体态矫正恢复时在数组中补回 'posture' */
+  ['fit','english','skin','finance'].forEach(g=>{
     const G=GOALS[g]; const done=goalDone(g,d);
     html+='<div class="row" onclick="switchTab(\''+g+'\')"><label>'+si(G.icon)+G.name+'</label>'+
       '<span class="pill" style="background:'+(done?'var(--primary-soft)':'#eef1f4')+';color:'+(done?'var(--primary)':'#99a6b3')+'">'+(done?'已打卡':'待完成')+'</span></div>';
@@ -1250,9 +1300,10 @@ const CHANNELS={
   skin:{name:'护肤',icon:'skin',sources:[
     {type:'reddit',url:'https://www.reddit.com/r/SkincareAddiction.json?limit=12'},
     {type:'reddit',url:'https://www.reddit.com/r/AsianBeauty.json?limit=8'} ]},
-  posture:{name:'体态穿搭',icon:'posture',sources:[
-    {type:'reddit',url:'https://www.reddit.com/r/Posture.json?limit=10'},
-    {type:'rss',url:'https://sspai.com/feed'} ]},
+  /* 扩展点：体态矫正恢复时补回 posture 灵感频道：
+     posture:{name:'体态穿搭',icon:'posture',sources:[
+       {type:'reddit',url:'https://www.reddit.com/r/Posture.json?limit=10'},
+       {type:'rss',url:'https://sspai.com/feed'} ]}, */
   english:{name:'英语',icon:'speak',sources:[
     {type:'reddit',url:'https://www.reddit.com/r/EnglishLearning.json?limit=12'} ]},
   finance:{name:'理财',icon:'coin',sources:[
@@ -1265,8 +1316,7 @@ const SEED={
     {title:'毛囊炎友好型饮食思路',summary:'减少高糖高油摄入，增加富含锌、Omega-3的食物（深海鱼、南瓜籽），避免运动后汗液长时间停留，及时清洁背部。',tags:['毛囊炎','抗炎','饮食']}],
   skin:[{title:'混油微敏痘印肌：分区护肤要点',summary:'T区控油、U区保湿。VC晨间抗氧化，传明酸+壬二酸针对痘印色沉，B5修护，最后修护乳封层。微敏肌刷酸从低浓度、低频开始。',tags:['分区护肤','痘印','成分']},
     {title:'刷酸避坑：建立耐受再进阶',summary:'水杨酸/壬二酸先隔天使用，观察是否泛红刺痛。搭配舒缓类修护乳，严格防晒。切勿叠加多种酸类。',tags:['刷酸','避坑','修护']}],
-  posture:[{title:'久坐族体态自救：每小时1分钟',summary:'设定提醒，每小时做靠墙站立、收下巴、沉肩练习。日常走路时想象头顶被线提起，长期改善圆肩驼背。',tags:['久坐','矫正','通勤']},
-    {title:'平价男生通勤穿搭气质提升',summary:'合身胜于昂贵。基础款衬衫/针织+直筒裤，注意肩线贴合，鞋面干净。色彩以中性色为主，用一件亮色配饰点睛。',tags:['穿搭','气质','平价']}],
+  /* 扩展点：体态矫正恢复时补回 posture 精选内容（久坐族体态自救 / 通勤穿搭等） */
   english:[{title:'碎片化上班族英语：通勤听力法',summary:'通勤用播客/新闻做“盲听→看稿→跟读”三步。每天15分钟，比周末突击更高效。积累职场高频口语模板。',tags:['碎片化','听力','职场']},
     {title:'短时高效记忆：主动回忆',summary:'学完立刻合上材料自测，比重复阅读记忆留存高数倍。用闪卡每天复习前日内容。',tags:['记忆','方法','效率']}],
   finance:[{title:'上班族存钱：先付给自己',summary:'工资到账先转固定比例（如20%）到储蓄账户，再安排支出。自动转账减少冲动消费。',tags:['存钱','储蓄','自动化']},
@@ -1447,7 +1497,8 @@ function savedList(ch){
   const arr=store.inspiration.saved.filter(s=>ch==='all'||s.channel===ch);
   if(!arr.length) return '<div class="empty">该板块暂无收藏</div>';
   return arr.map(s=>'<div class="insp-card" style="border-left-color:'+(s.status==='todo'?'var(--accent)':'var(--primary)')+'">'+
-    '<div class="src">'+(CHANNELS[s.channel]?.name||'')+' · '+(s.status==='todo'?'二创待办':'已收藏')+'</div>'+
+    /* 已下线频道的旧收藏不再有 CHANNELS 条目，用中性兜底名避免显示空白 */
+    '<div class="src">'+(CHANNELS[s.channel]?.name||'其他')+' · '+(s.status==='todo'?'二创待办':'已收藏')+'</div>'+
     '<h3>'+esc(s.title)+'</h3><p>'+esc(s.summary)+'</p>'+
     '<div class="field" style="margin:4px 0"><input type="text" class="txt" placeholder="绑定我的经历 / 二创思路" value="'+esc(s.note||'')+'" onchange="setNote(\''+enc(s.title)+'\',this.value)"></div>'+
     '<div class="acts">'+
@@ -1478,7 +1529,8 @@ function renderReview(){
   html+='<div class="card"><h2>'+si('run')+' 健身复盘</h2>'+areaField('fit_r','饮食热量缺口 / 运动效率 / 体重体脂变化',r.fit_r,'下次训练调整方向')+'</div>';
   html+='<div class="card"><h2>'+si('skin')+' 护肤复盘</h2>'+areaField('sk_r','皮肤状态变化 / 搭配效果 / 是否泛红',r.sk_r,'下月护肤流程优化')+'</div>';
   html+='<div class="card"><h2>'+si('speak')+' 英语口语复盘</h2>'+areaField('en_r','口语流利度 / 遗忘知识点',r.en_r,'调整学习时段与方法')+'</div>';
-  html+='<div class="card"><h2>'+si('posture')+' 体态复盘</h2>'+areaField('pos_r','久坐坏习惯频次 / 矫正练习效果',r.pos_r,'日常提醒方案')+'</div>';
+  /* 扩展点：体态矫正恢复时补回——
+     html+='<div class="card"><h2>'+si('posture')+' 体态复盘</h2>'+areaField('pos_r','久坐坏习惯频次 / 矫正练习效果',r.pos_r,'日常提醒方案')+'</div>'; */
   html+='<div class="card"><h2>'+si('coin')+' 记账储蓄复盘</h2>'+areaField('fin_r','收支合理性 / 不必要开销',r.fin_r,'次日节流计划')+'</div>';
   html+='<div class="section-title">④ 长期月度总复盘</div>';
   html+='<div class="card"><h2>'+si('chart')+' 月度总览</h2>'+
@@ -1778,22 +1830,7 @@ const GOAL_TMPL=[
       {text:'学习基础理财知识，规划稳健配置', prio:'low'}
     ]}
   ]},
-  {kw:['体态','驼背','肩颈','站姿','骨盆','矫正','脊柱','圆肩','高低肩','坐姿'],
-   stages:[
-    {title:'阶段一 · 评估问题', tasks:[
-      {text:'拍照/对镜评估体态（驼背/圆肩/骨盆前倾）', prio:'high'},
-      {text:'定位核心薄弱肌群与紧张肌群', prio:'high'}
-    ]},
-    {title:'阶段二 · 每日纠正', tasks:[
-      {text:'每日 10 分钟拉伸紧张部位', prio:'high'},
-      {text:'每日强化薄弱肌群（背/臀/核心）', prio:'high'},
-      {text:'办公定时起身，纠正坐姿', prio:'mid'}
-    ]},
-    {title:'阶段三 · 巩固', tasks:[
-      {text:'每周对比体态照片看改善', prio:'mid'},
-      {text:'融入日常，形成肌肉记忆', prio:'low'}
-    ]}
-  ]}
+  /* 扩展点：体态矫正恢复时，可在此补回体态目标拆解模板（阶段：评估问题 → 每日纠正 → 巩固） */
 ];
 function matchTemplate(title){
   const t=(title||'').toLowerCase();
@@ -2368,8 +2405,9 @@ function genTips(){
   const enDays=lastNDays(3).filter(k=>store.days[k]&&store.days[k].en_speak).length;
   if(enDays===0) out.push({id:'english',p:'mid',t:'口语断了 3 天',d:'语言靠高频短时，每天 10 分钟跟读，比一周一次猛练 2 小时有效得多。',act:{label:'去英语页',fn:"switchTab('english')"}});
 
-  const posDays=lastNDays(3).filter(k=>store.days[k]&&(store.days[k].pos_check||store.days[k].pos_min)).length;
-  if(posDays===0) out.push({id:'posture',p:'low',t:'体态练习停了 3 天',d:'久坐是体态的头号敌人。设个每小时提醒，做 1 分钟靠墙站立＋收下巴。',act:{label:'去体态页',fn:"switchTab('posture')"}});
+  /* 扩展点：体态矫正恢复时补回——
+     const posDays=lastNDays(3).filter(k=>store.days[k]&&(store.days[k].pos_check||store.days[k].pos_min)).length;
+     if(posDays===0) out.push({id:'posture',p:'low',t:'体态练习停了 3 天',d:'久坐是体态的头号敌人。设个每小时提醒，做 1 分钟靠墙站立＋收下巴。',act:{label:'去体态页',fn:"switchTab('posture')"}}); */
 
   const hasSave=lastNDays(3).filter(k=>(store.days[k]?.expenses||[]).length||store.days[k]?.save_today).length;
   if(hasSave===0) out.push({id:'finance',p:'mid',t:'3 天没记账了',d:'记账的意义不在省钱，而在看清钱去哪了。哪怕只记餐饮这一项也有用。',act:{label:'去记一笔',fn:"switchTab('finance')"}});
@@ -2467,7 +2505,7 @@ function showHelp(key){
   showModal('<h3>'+si('help')+' 使用说明 · '+(names[key]||'')+'</h3><p style="font-size:14px;line-height:1.8;color:#3c4043">'+txt+'</p><button class="btn" style="margin-top:14px" onclick="closeModal()">明白了</button>');
 }
 function showUsage(){
-  let html='<h3>'+si('bulb')+' 使用说明</h3><div class="usage-section"><h3>'+si('sun')+' 每日怎么用</h3><p>① 打开「今日」看晨间推送和饮水；② 进各目标页打卡（健身/体态/英语/护肤/理财）；③ 用「Todo 清单」写下当天任务；④ 随手把杂念丢进「收集箱」；⑤ 睡前到「复盘」打分+写总结。</p></div>';
+  let html='<h3>'+si('bulb')+' 使用说明</h3><div class="usage-section"><h3>'+si('sun')+' 每日怎么用</h3><p>① 打开「今日」看晨间推送和饮水；② 进各目标页打卡（健身/英语/护肤/理财）；③ 用「Todo 清单」写下当天任务；④ 随手把杂念丢进「收集箱」；⑤ 睡前到「复盘」打分+写总结。</p></div>';
   html+='<div class="usage-section"><h3>'+si('list')+' 手机上使用</h3><p>本页是手机友好的网页应用。在手机浏览器打开后，点右下「≡」菜单或底部四个按钮切换模块。建议“添加到主屏幕”，像 App 一样全屏使用。数据存在本机浏览器，换设备请用「我的→数据管理→复制数据为文本」迁移。</p></div>';
   html+='<div class="usage-section"><h3>'+si('inbox')+' 收集箱 & AI</h3><p>收集箱收纳一切待处理；AI 帮手可随时解答训练、护肤、英语、存钱相关问题。</p></div>';
   html+='<div class="usage-section"><h3>'+si('chart')+' 灵感 & 报表</h3><p>「灵感」每日从公开内容源抓取干货，可收藏/标记二创；「报表」自动汇总每周与每月数据。</p></div>';
@@ -2477,6 +2515,7 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v2.2',date:'2026-09-08',items:['下线「体态矫正」独立模块：价值有限、体验鸡肋，移除导航入口、打卡页、每日任务与雷达图维度（五维→四维）','历史打卡数据完整保留，未删除；已预留扩展点，后续将基于「无氧训练」数据以更合适的方式重新接入']},
     {ver:'v2.1',date:'2026-09-05',items:['收集箱新增「目标细化」：目标一键拆成「阶段→任务」目标树','支持持续迭代：追问拆解、继续拆解、补充想法、动态调整','任务含优先级（高/中/低）与三态进度（未开始/进行中/已完成）','目标树进度可视化 + 实时「下一步行动」建议']},
     {ver:'v2.0',date:'2026-07-29',items:['全新响应式布局：桌面左侧导航 + 手机底部 4 入口 + 抽屉菜单','新增「Todo 清单」：自定义待办、完成鼓励彩蛋','新增「收集箱」：灵感/待办/链接统一暂存，可转待办','新增「AI 帮手」：训练/护肤/英语/存钱四能力','护肤深度扩展：诊断/晨晚周流程/产品库/药品库/预算','统一 SVG 图标，移除 emoji，蓝色主题 + 狗哥背景延续','圆圈问号帮助、使用说明、更新日志','GitHub Pages 一键部署，跨设备文本迁移']},
     {ver:'v1.0',date:'2026-07',items:['五大目标主线打卡（健身/体态/英语/护肤/理财）','灵感抓取（Reddit + RSS 代理）','每日/月度复盘与报表','薛之谦歌词灵感元素','本机数据持久化']}
@@ -2506,7 +2545,7 @@ function renderMe(){
     numField('bigWarn','大额支出提醒阈值',null,s.bigWarn,'元')+
     '<button class="btn" onclick="saveSettings()">保存设置</button></div>';
   html+='<div class="card"><h2>'+si('bulb')+'自定义灵感源（RSS）</h2><div class="sub">添加你常看的博客/公众号 RSS，灵感区会自动抓取</div>'+
-    '<div id="rssList">'+((s.customRSS||[]).map((r,i)=>'<div class="expense-row"><span class="pill">'+CHANNELS[r.channel]?.name+'</span><span class="muted" style="font-size:12px;overflow:hidden">'+esc(r.url)+'</span><span class="del" onclick="delRSS('+i+')">×</span></div>').join('')||'<div class="muted">暂无自定义源</div>')+'</div>'+
+    '<div id="rssList">'+((s.customRSS||[]).map((r,i)=>'<div class="expense-row"><span class="pill">'+(CHANNELS[r.channel]?.name||'其他')+'</span><span class="muted" style="font-size:12px;overflow:hidden">'+esc(r.url)+'</span><span class="del" onclick="delRSS('+i+')">×</span></div>').join('')||'<div class="muted">暂无自定义源</div>')+'</div>'+
     '<div class="expense-row" style="margin-top:8px">'+
       '<select id="rssCh">'+Object.keys(CHANNELS).map(k=>'<option value="'+k+'">'+CHANNELS[k].name+'</option>').join('')+'</select>'+
       '<input type="text" id="rssUrl" placeholder="RSS 链接" style="grid-column:span 2">'+
@@ -2526,7 +2565,7 @@ function renderMe(){
     '<textarea id="migrateText" placeholder="点“复制数据为文本”生成一串字符；或在手机端把电脑生成的文本粘贴到这里，再点“从文本恢复”。" style="width:100%;height:96px;margin-top:8px;font-size:12px;font-family:monospace"></textarea>'+
     '<p class="muted" style="font-size:11px;line-height:1.6;margin-top:6px">提示：数据只存在本机浏览器，换设备需迁移。复制后在微信发给自己，手机端打开本页粘贴即可恢复全部记录。</p></div>';
   html+='<div class="card"><h2>'+si('heart')+'关于「渡」</h2>'+
-    '<p class="muted" style="font-size:13px;line-height:1.7">渡，是自我的蜕变之舟。以每日固定习惯为桨，以成长灵感为风，以复盘为舵，稳步穿越身材、皮肤、体态、英语、理财五重河流，抵达更好的自己。</p>'+
+    '<p class="muted" style="font-size:13px;line-height:1.7">渡，是自我的蜕变之舟。以每日固定习惯为桨，以成长灵感为风，以复盘为舵，稳步穿越身材、皮肤、英语、理财四重河流，抵达更好的自己。</p>'+
     '<p style="font-size:13px;color:#6b4f2a;font-style:italic;margin-top:8px">“我不迁就，所以孤独。”——愿你在「渡」里，也敢不迁就自己的惰性。</p>'+
     '<p class="muted" style="font-size:12px">数据全部保存在本机浏览器，离线可用。灵感来自公开社区内容源，仅供学习参考。歌词仅作个人灵感，版权归薛之谦及词曲作者所有。</p></div>';
   const p=$('#p-me'); p.innerHTML=html;
