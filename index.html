@@ -120,6 +120,7 @@
   .pill.green{background:#e8f0dc; color:#3d5728;}
   .pill.yellow{background:#fbefc6; color:#5e4709;}
   .pill.gray{background:#f0f1ef; color:#565b60;}
+  .pill.todo{background:#fdeee0; color:#8a5a12;}
   .stat-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:6px;}
   .stat{background:var(--primary-soft); border-radius:12px; padding:12px; text-align:center;}
   .stat.pink{background:#f7e1ee;}
@@ -527,11 +528,108 @@
   .d-tb th{background:rgba(227,238,252,.75); color:#123a6b; font-weight:800; white-space:nowrap;}
   .d-tb tbody tr:nth-child(even){background:rgba(255,255,255,.42);}
   .d-tb td.n{font-weight:800; color:#0f3568; white-space:nowrap;}
+  /* ===== 减脂 v2.4：分组层级 / 同轴对比 / 环比 ===== */
+  .d-group{display:flex; align-items:center; gap:8px; margin:22px 2px 9px;
+    font-size:13.5px; font-weight:800; color:#0f3568; letter-spacing:.4px;}
+  .d-group:first-child{margin-top:0;}
+  .d-group::before{content:''; width:3.5px; height:15px; border-radius:2px;
+    background:var(--primary); flex:0 0 auto;}
+  .d-group .gsub{font-size:11px; font-weight:400; color:var(--muted); letter-spacing:0;}
+  .d-cmp{display:grid; grid-template-columns:58px 1fr 84px; gap:8px; align-items:center; margin-top:7px;}
+  .d-cmp .cl{font-size:11px; color:var(--muted); line-height:1.35;}
+  .d-cmp .ct{position:relative; height:18px; border-radius:5px; background:rgba(227,238,252,.55);}
+  .d-cmp .cf{position:absolute; left:0; top:0; bottom:0; border-radius:5px;}
+  .d-cmp .cmk{position:absolute; top:-3px; bottom:-3px; width:2px; border-radius:1px; background:#e0932f;}
+  .d-cmp .cv{font-size:12px; text-align:right; color:#0f3568; font-weight:800; white-space:nowrap; line-height:1.35;}
+  .d-cmp .cv small{font-weight:400; color:var(--muted); font-size:10.5px;}
+  .d-cmp.hi .cl{color:#0f3568; font-weight:800;}
+  .d-cmp.hi .ct{background:rgba(47,108,192,.14);}
+  .d-why{font-size:11.5px; color:var(--muted); line-height:1.7; margin-top:10px;}
+  .d-why b{color:#0f3568;}
+  .d-fold{margin-top:12px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.5);}
+  .d-fold>summary{padding:11px 12px; font-size:13px; font-weight:800; color:#0f3568; cursor:pointer;
+    list-style:none; display:flex; align-items:center; gap:8px;}
+  .d-fold>summary::-webkit-details-marker{display:none;}
+  .d-fold>summary .fa{margin-left:auto; color:var(--muted); font-weight:400; font-size:11px;}
+  .d-fold .fbody{padding:2px 12px 12px;}
+  .d-lgd{display:flex; flex-wrap:wrap; gap:6px 14px; font-size:11px; color:var(--muted); margin-top:9px;}
+  .d-lgd span{display:flex; align-items:center; gap:5px;}
+  .d-lgd i{width:15px; height:3px; border-radius:2px; flex:0 0 auto;}
+  .d-lgd i.dot{width:7px; height:7px; border-radius:50%;}
+  .d-lgd i.dash{height:0; border-top:2px dashed #e0932f; width:15px;}
+  .d-delta{font-weight:800; font-size:11.5px; padding:1px 6px; border-radius:7px; white-space:nowrap;}
+  .d-delta.up{background:rgba(79,157,105,.16); color:#2f6b47;}
+  .d-delta.down{background:rgba(217,83,79,.14); color:#a3392f;}
+  .d-delta.flat{background:rgba(138,151,166,.16); color:#5c6674;}
   @media (max-width:560px){
     .d-box .v{font-size:19px;}
     .d-grid7{gap:3px;}
     .d-day .dm{display:none;}
+    .d-cmp{grid-template-columns:52px 1fr 74px; gap:6px;}
+    .d-cmp .cl{font-size:10.5px;}
   }
+
+  /* ==================================================================
+     v2.5 通用可视化（报表 / 复盘 / Todo / 收集箱）
+     设计原则：每个数字都要有参照系（分母 / 目标 / 上周），
+               不出现「孤零零一个数」；达标与否用颜色一眼可辨。
+     ================================================================== */
+
+  /* —— 报表：指标卡参照系与达标状态 —— */
+  .stat .v small{font-size:12px; font-weight:700; color:#8a97a6;}
+  .stat .r{font-size:10.5px; color:#8a97a6; margin-top:4px; line-height:1.35;}
+  .stat .r.ok{color:#3f8459; font-weight:800;}
+  .stat .r.warn{color:#b8781f; font-weight:800;}
+  .stat .r.bad{color:#bf453f; font-weight:800;}
+  .stat.st-ok{box-shadow:inset 0 0 0 1.5px rgba(79,157,105,.42);}
+  .stat.st-warn{box-shadow:inset 0 0 0 1.5px rgba(201,130,42,.42);}
+  .stat.st-bad{box-shadow:inset 0 0 0 1.5px rgba(198,75,69,.42);}
+  .stat-grp{margin-top:13px;}
+  .stat-grp:first-of-type{margin-top:4px;}
+  .stat-grp .gt{font-size:11.5px; font-weight:800; color:#123a6b; letter-spacing:.3px;
+    margin:0 0 7px 1px; display:flex; align-items:center; gap:6px;}
+  .stat-grp .gt::before{content:''; width:3px; height:12px; border-radius:2px; background:var(--primary);}
+  .stat-grp .gt .gsum{margin-left:auto; font-weight:600; font-size:10.5px; color:var(--muted); letter-spacing:0;}
+
+  /* —— sparkline 迷你趋势行 —— */
+  .spk-row{display:grid; grid-template-columns:60px 1fr 66px; gap:9px; align-items:center; margin-top:10px;}
+  .spk-row:first-of-type{margin-top:2px;}
+  .spk-row .sl{font-size:11px; color:#4a5a6b; line-height:1.3; font-weight:600;}
+  .spk-row .sv{font-size:12px; font-weight:800; color:#0f3568; text-align:right; white-space:nowrap;}
+  .spk-row .sv small{font-weight:400; color:var(--muted); font-size:10px;}
+  .spk-wrap{background:rgba(227,238,252,.34); border-radius:8px; overflow:hidden;}
+
+  /* —— 复盘：客观数据速览 —— */
+  .rv-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:9px;}
+  .rv-cell{background:rgba(227,238,252,.5); border-radius:10px; padding:9px 5px; text-align:center;}
+  .rv-cell .rv-v{font-size:15px; font-weight:800; color:#0f3568; line-height:1.2;}
+  .rv-cell .rv-v small{font-size:10px; font-weight:600; color:var(--muted);}
+  .rv-cell .rv-l{font-size:10px; color:var(--muted); margin-top:3px;}
+  .rv-cell.ok{background:rgba(215,236,220,.7);}
+  .rv-cell.no{background:rgba(246,231,224,.65);}
+  .rv-note{font-size:11.5px; color:var(--muted); line-height:1.65; margin-top:10px;}
+
+  /* —— Todo：进度与分组 —— */
+  .td-prog{display:flex; align-items:center; gap:10px; margin-top:10px;}
+  .td-prog .bar{flex:1; margin-top:0; height:9px;}
+  .td-prog .tp-t{font-size:12px; font-weight:800; color:#0f3568; white-space:nowrap;}
+  .td-group{margin-top:13px;}
+  .td-group .tg-h{font-size:11.5px; font-weight:800; color:#123a6b; display:flex; align-items:center;
+    gap:6px; cursor:pointer; padding:5px 2px; user-select:none;}
+  .td-group .tg-h .tg-c{color:var(--muted); font-weight:400; font-size:10px; transition:.2s;}
+  .td-group .tg-h .tg-n{margin-left:auto; font-size:10.5px; font-weight:700; color:var(--muted);}
+  .td-group.fold .tg-b{display:none;}
+  .td-group.fold .tg-h .tg-c{transform:rotate(-90deg);}
+
+  /* —— 收集箱：标签统计与筛选 —— */
+  .ib-stats{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
+  .ib-stats .ib-t{padding:6px 12px; border-radius:17px; font-size:12px; background:#f0f1ef; color:#565b60;
+    cursor:pointer; border:1px solid transparent; white-space:nowrap;}
+  .ib-stats .ib-t.on{background:var(--primary); color:#fff; border-color:var(--primary);}
+  .ib-stats .ib-t b{font-weight:800;}
+  .ib-stale{background:rgba(251,239,198,.6); border-left:3px solid #e0932f; border-radius:9px;
+    padding:9px 11px; font-size:12px; color:#7a5d10; margin-bottom:10px; line-height:1.55;}
+  .ib-stale b{color:#5e4709;}
 </style>
 </head>
 <body>
@@ -943,6 +1041,7 @@ const GOALS={
     checkin:[
       {k:'diet_done',t:'完成今日减脂方案',h:'餐次占比守住 + 训练完成',type:'check'},
       {k:'weight',t:'今日体重',unit:'斤',type:'num',ph:'晨起排便后空腹'},
+      {k:'diet_waist',t:'腰围（每周一次）',unit:'cm',type:'num',ph:'肚脐水平，警戒 90'},
       {k:'diet_kcal',t:'摄入热量',unit:'kcal',type:'num',ph:'主减期 2360'},
       {k:'diet_p',t:'蛋白质',unit:'g',type:'num',ph:'目标 185'},
       {k:'diet_min',t:'训练时长',unit:'分钟',type:'num',ph:'方案 25–40'},
@@ -1209,12 +1308,19 @@ function renderOverview(){
   const gp=dailyPct(); const gq=dailyQuests().filter(q=>!q.done).length;
   let html='';
   if(gp<100) html+='<div class="card" style="background:linear-gradient(135deg,rgba(255,244,230,.35),rgba(255,233,207,.32));border-left:4px solid var(--accent)"><div class="spread"><b style="font-size:15px">⚔️ 今日修炼 '+gp+'%</b><span class="muted">差 '+gq+' 项渡劫在即</span></div><button class="btn ghost sm" style="margin-top:8px" onclick="switchTab(\'growth\')">'+si('star')+' 去修炼</button></div>';
+  /* v2.5：晨间推送改为实时反映今日完成状态
+     原实现是写死的四个标签（健身训练 / 英语口语 / 护肤流程 / 记账储蓄），
+     练完了仍显示「健身训练」，也没跟上 v2.3 新增的减脂维度 —— 说的和做的不一致。 */
+  const mq=dailyQuests();
+  const mDone=mq.filter(q=>q.done).length;
+  const mPct=mq.length? Math.round(mDone/mq.length*100) : 0;
   html+='<div class="card"><h2>'+si('sun')+'晨间推送 · 今日待办</h2>'+
-    '<div class="sub">'+esc(s.name)+'，这是今天的蜕变清单</div>'+
-    '<div class="flex wrap" style="gap:8px">'+
-      '<span class="pill">健身训练</span><span class="pill">英语口语</span>'+
-      '<span class="pill">护肤流程</span><span class="pill">记账储蓄</span>'+
-      '<span class="pill">饮水 '+pct+'%</span><span class="pill">睡眠 '+s.bedGoal+'前</span></div>'+
+    '<div class="sub">'+esc(s.name)+'，这是今天的蜕变清单 · 已完成 <b>'+mDone+'/'+mq.length+'</b> 项</div>'+
+    '<div class="bar" style="height:8px;margin-top:8px"><i style="width:'+mPct+'%"></i></div>'+
+    '<div class="flex wrap" style="gap:7px;margin-top:11px">'+
+      mq.map(q=>'<span class="pill '+(q.done?'green':'todo')+'">'+(q.done?'✓ ':'')+esc(q.name)+'</span>').join('')+
+    '</div>'+
+    '<div class="d-why" style="margin-top:9px">绿色＝已完成，橙色＝还没做。这份清单与「成长 · 渡劫」页的每日修炼<b>同源</b>，两边永远一致。</div>'+
     '<div class="flex" style="margin-top:11px; gap:8px">'+
       '<button class="btn ghost sm" onclick="pushMorning()">'+si('chat')+' 朗读待办</button>'+
       '<button class="btn ghost sm" onclick="setReminders()">'+si('clock')+' 设置提醒</button>'+
@@ -1229,12 +1335,15 @@ function renderOverview(){
       '<button class="btn ghost sm" onclick="addWater(-500)">−500</button>'+
     '</div>'+
     '<p class="muted" style="margin-top:9px">点一次 = 一杯 '+s.cupSize+' ml；500 ml 为大瓶/运动补水。</p></div>';
-  html+='<div class="card"><h2>'+si('target')+'今日目标总览</h2><div class="sub">点击进入各目标详情，逐项细致打卡</div>';
   /* 扩展点：体态矫正恢复时在数组中补回 'posture' */
-  ['fit','diet','english','skin','finance'].forEach(g=>{
+  const goalKeys=['fit','diet','english','skin','finance'];
+  const goalDoneN=goalKeys.filter(g=>goalDone(g,d)).length;
+  html+='<div class="card"><h2>'+si('target')+'今日目标总览 <span class="pill blue" style="margin-left:auto">'+goalDoneN+'/'+goalKeys.length+'</span></h2>'+
+    '<div class="sub">点击进入各目标详情，逐项细致打卡</div>';
+  goalKeys.forEach(g=>{
     const G=GOALS[g]; const done=goalDone(g,d);
     html+='<div class="row" onclick="switchTab(\''+g+'\')"><label>'+si(G.icon)+G.name+'</label>'+
-      '<span class="pill" style="background:'+(done?'var(--primary-soft)':'#eef1f4')+';color:'+(done?'var(--primary)':'#99a6b3')+'">'+(done?'已打卡':'待完成')+'</span></div>';
+      '<span class="pill" style="background:'+(done?'var(--primary-soft)':'#fdeee0')+';color:'+(done?'var(--primary)':'#8a5a12')+'">'+(done?'✓ 已打卡':'待完成')+'</span></div>';
   });
   html+='</div>';
   html+='<div class="card"><div class="spread"><h2>'+si('star')+'成长 · 渡劫</h2><button class="btn ghost sm" onclick="switchTab(\'growth\')">查看</button></div>'+
@@ -1297,6 +1406,15 @@ const DIET_PLAN={
   phase:{adapt:{kcal:2560,def:300}, main:{kcal:2360,def:500}},
   macro:{p:185, f:68, c:250},
   macroKcal:{p:740, f:612, c:1000},
+  /* 参考基准：用于同轴定位与安全判定 */
+  ref:{
+    axisMax:3100,            /* 摄入同轴定位图的横轴上限 */
+    h:1.78,                  /* 身高，用于 BMI 折算 */
+    bmiOver:24, bmiNormal:23.9,
+    waistWarn:90,            /* 腰围警戒线（cm，男） */
+    speedGood:[-1.0,-0.6],   /* 每周减重合理区间（斤/周，负为下降） */
+    speedTol:0.15            /* 判定「持平」的容差（斤/周） */
+  },
   meals:[
     {k:'m1', name:'早餐', pct:25, kcal:590, p:42, f:18, c:67, time:'起床后 1 小时内'},
     {k:'m2', name:'午餐', pct:35, kcal:826, p:63, f:24, c:90, time:'与早餐间隔 4–6 小时'},
@@ -1338,37 +1456,60 @@ function dietRing(pct,color,big,sub){
       'stroke="#0f3568" stroke-width=".55" style="paint-order:stroke">'+big+'</text>'+
     '<text x="60" y="76" text-anchor="middle" font-size="10.5" fill="#2c3b4e">'+sub+'</text></svg>';
 }
+/* 最小二乘线性回归斜率（每日变化量）。比「首末差」抗噪：单日异常不会带偏整条趋势 */
+function linReg(vals){
+  const n=vals.length; if(n<2) return null;
+  let sx=0,sy=0,sxy=0,sxx=0;
+  for(let i=0;i<n;i++){ sx+=i; sy+=vals[i]; sxy+=i*vals[i]; sxx+=i*i; }
+  const den=n*sxx-sx*sx; if(!den) return null;
+  return (n*sxy-sx*sy)/den;
+}
+/* 移动平均：滤掉日常水分波动，留下真实趋势方向 */
+function maSeries(vals,w){
+  const out=[];
+  for(let i=0;i<vals.length;i++){
+    const s=Math.max(0,i-w+1), seg=vals.slice(s,i+1);
+    out.push(seg.reduce((a,b)=>a+b,0)/seg.length);
+  }
+  return out;
+}
 function weightTrendSvg(n){
   const keys=lastNDays(n||30), pts=[];
   keys.forEach(k=>{ const d=store.days[k];
     if(d&&d.weight!=null&&d.weight!=='') pts.push({k, v:+d.weight}); });
   if(pts.length<2) return '<div class="empty">'+si('scale')+'记录 2 天以上体重后，这里会生成减脂曲线</div>';
   const tgt=+(store.settings.dietTargetJin||150);
-  const W=340, H=150, padL=8, padR=8, padT=18, padB=22, N=pts.length;
-  const vs=pts.map(p=>p.v);
+  const W=340, H=178, padL=30, padR=12, padT=14, padB=22, N=pts.length;
+  const vs=pts.map(p=>p.v), ma=maSeries(vs,7);
   let lo=Math.min.apply(null, vs.concat([tgt])), hi=Math.max.apply(null, vs.concat([tgt]));
   if(hi-lo<4){ hi+=2; lo-=2; }
+  const sp=hi-lo; lo-=sp*.1; hi+=sp*.1;
   const X=i=> padL+(W-padL-padR)*(N<=1?0:i/(N-1));
   const Y=v=> padT+(H-padT-padB)*(1-(v-lo)/(hi-lo));
-  let line=''; pts.forEach((p,i)=>{ line+=(i?' L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1); });
-  const area='M'+X(0).toFixed(1)+' '+(H-padB)+' '+pts.map((p,i)=>'L'+X(i).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ')+
-             ' L'+X(N-1).toFixed(1)+' '+(H-padB)+' Z';
-  const ty=Y(tgt);
   let h='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'">'+
     '<defs><linearGradient id="dwg" x1="0" y1="0" x2="0" y2="1">'+
-    '<stop offset="0" stop-color="#2f6cc0" stop-opacity=".36"/>'+
+    '<stop offset="0" stop-color="#2f6cc0" stop-opacity=".3"/>'+
     '<stop offset="1" stop-color="#2f6cc0" stop-opacity="0"/></linearGradient></defs>';
-  for(let g=0; g<=3; g++){ const y=padT+(H-padT-padB)*g/3;
-    h+='<line x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y.toFixed(1)+'" stroke="#e3e8ee" stroke-width="1"/>'; }
-  h+='<line x1="'+padL+'" y1="'+ty.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ty.toFixed(1)+'" stroke="#e0932f" stroke-width="1.6" stroke-dasharray="5 4"/>'+
+  for(let g=0; g<=3; g++){
+    const v=hi-(hi-lo)*g/3, y=Y(v);
+    h+='<line x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y.toFixed(1)+'" stroke="#e3e8ee" stroke-width="1"/>'+
+       '<text x="'+(padL-4)+'" y="'+(y+3.2).toFixed(1)+'" text-anchor="end" font-size="9" fill="#8a97a6">'+v.toFixed(1)+'</text>';
+  }
+  const ty=Y(tgt);
+  h+='<line x1="'+padL+'" y1="'+ty.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ty.toFixed(1)+'" stroke="#e0932f" stroke-width="1.5" stroke-dasharray="5 4"/>'+
      '<text x="'+(W-padR)+'" y="'+(ty-4).toFixed(1)+'" text-anchor="end" font-size="10" font-weight="800" fill="#a5671d">目标 '+tgt+' 斤</text>';
+  let raw=''; pts.forEach((p,i)=>{ raw+=(i?' L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1); });
+  const area='M'+X(0).toFixed(1)+' '+(H-padB)+' '+ma.map((v,i)=>'L'+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join(' ')+
+             ' L'+X(N-1).toFixed(1)+' '+(H-padB)+' Z';
+  let mal=''; ma.forEach((v,i)=>{ mal+=(i?' L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1); });
   h+='<path d="'+area+'" fill="url(#dwg)"/>'+
-     '<path d="'+line+'" fill="none" stroke="#2f6cc0" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
-  pts.forEach((p,i)=>{ if(i===0||i>=N-2) h+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="3.2" fill="#2f6cc0"/>'; });
-  h+='<text x="'+X(0).toFixed(1)+'" y="'+(Y(vs[0])-8).toFixed(1)+'" font-size="11" font-weight="800" fill="#0f3568" stroke="#0f3568" stroke-width=".45" style="paint-order:stroke">'+vs[0]+'</text>'+
-     '<text x="'+X(N-1).toFixed(1)+'" y="'+(Y(vs[N-1])-8).toFixed(1)+'" text-anchor="end" font-size="12.5" font-weight="800" fill="#0f3568" stroke="#0f3568" stroke-width=".45" style="paint-order:stroke">'+vs[N-1]+'</text>'+
-     '<text x="'+padL+'" y="'+(H-6)+'" font-size="10" fill="#2c3b4e">'+pts[0].k.slice(5)+'</text>'+
-     '<text x="'+(W-padR)+'" y="'+(H-6)+'" text-anchor="end" font-size="10" fill="#2c3b4e">'+pts[N-1].k.slice(5)+'</text></svg>';
+     '<path d="'+raw+'" fill="none" stroke="#8fb6e0" stroke-width="1.1" stroke-linejoin="round" opacity=".9"/>';
+  pts.forEach((p,i)=>{ h+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="1.7" fill="#7aa9d8"/>'; });
+  h+='<path d="'+mal+'" fill="none" stroke="#2f6cc0" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>'+
+     '<circle cx="'+X(N-1).toFixed(1)+'" cy="'+Y(ma[N-1]).toFixed(1)+'" r="3.4" fill="#2f6cc0"/>'+
+     '<text x="'+(X(N-1)-4).toFixed(1)+'" y="'+(Y(ma[N-1])-9).toFixed(1)+'" text-anchor="end" font-size="12.5" font-weight="800" fill="#0f3568" stroke="#0f3568" stroke-width=".45" style="paint-order:stroke">'+ma[N-1].toFixed(1)+'</text>'+
+     '<text x="'+padL+'" y="'+(H-6)+'" font-size="9" fill="#8a97a6">'+pts[0].k.slice(5)+'</text>'+
+     '<text x="'+(W-padR)+'" y="'+(H-6)+'" text-anchor="end" font-size="9" fill="#8a97a6">'+pts[N-1].k.slice(5)+'</text></svg>';
   return h;
 }
 function dietBars(keys,key,target,color,emptyHint){
@@ -1438,135 +1579,284 @@ function weekTrainGrid(){
   return h;
 }
 
+/* ---------- 同轴定位对比：把今日摄入放到参考线上，一眼看出位置 ---------- */
+function intakeCompare(kcal,ph){
+  const P=DIET_PLAN, max=P.ref.axisMax;
+  const rows=[
+    {n:'安全下限', v:P.floor,  c:'#d9534f'},
+    {n:'方案目标', v:ph.kcal,  c:'#2f6cc0'},
+    {n:'维持线',   v:P.tdee,   c:'#8a97a6'}
+  ];
+  if(kcal) rows.push({n:'今日实际', v:kcal, c:'#4f9d69', hi:true});
+  rows.sort((a,b)=>a.v-b.v);
+  let h='';
+  rows.forEach(r=>{
+    const w=Math.max(2, Math.min(100, r.v/max*100));
+    h+='<div class="d-cmp'+(r.hi?' hi':'')+'">'+
+       '<div class="cl">'+r.n+'</div>'+
+       '<div class="ct"><div class="cf" style="width:'+w.toFixed(1)+'%;background:'+r.c+'"></div>'+
+         (r.hi?'<div class="cmk" style="left:'+Math.min(100,ph.kcal/max*100).toFixed(1)+'%"></div>':'')+
+       '</div>'+
+       '<div class="cv">'+r.v+'<small> kcal</small></div></div>';
+  });
+  return h;
+}
+/* 摄入状态判读：热量不是「越多越好」的指标，必须按区间判读 */
+function intakeStatus(kcal,ph){
+  const P=DIET_PLAN;
+  if(!kcal) return {k:'none', t:'填入今日「摄入热量」后，你的位置会实时落到这条轴上。'};
+  if(kcal<P.floor) return {k:'bad', t:'已跌破安全下限 <b>'+(P.floor-kcal)+' kcal</b>，持续如此会掉肌肉、代谢下调，<b>请勿再往下压</b>。'};
+  if(kcal<ph.kcal*0.9) return {k:'low', t:'距方案目标还差 <b>'+(ph.kcal-kcal)+' kcal</b>。偏少时不建议补碳水，优先把<b>蛋白补足</b>。'};
+  if(kcal<=ph.kcal*1.05) return {k:'ok', t:'正好落在方案目标附近，<b>这是最理想的执行状态</b>。'};
+  if(kcal<=P.tdee) return {k:'over', t:'超出方案目标 <b>'+(kcal-ph.kcal)+' kcal</b>，但仍在维持线下方 → 今天依然是缺口日，<b>不必补偿性节食</b>。'};
+  return {k:'bad2', t:'已越过维持线，<b>今天没有产生缺口</b>。单日无妨，别连续三天；第二天回到 '+ph.kcal+' kcal 正常执行即可。'};
+}
+/* ---------- 周环比：本周 vs 上周，用同一条刻度做对比 ---------- */
+function weekCompare(ph){
+  const tw=weekKeys();
+  const lm=new Date(tw[0]); lm.setDate(lm.getDate()-7);
+  const lw=[];
+  for(let i=0;i<7;i++){ const x=new Date(lm); x.setDate(lm.getDate()+i);
+    lw.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')); }
+  const sum=(ks,k)=>{ let s=0; ks.forEach(x=>{ const o=store.days[x]; if(o) s+=(+o[k]||0); }); return s; };
+  const cnt=(ks,k)=>{ let s=0; ks.forEach(x=>{ const o=store.days[x]; if(o&&+o[k]>0) s++; }); return s; };
+  const avgv=(ks,k)=>{ const a=[]; ks.forEach(x=>{ const o=store.days[x];
+    if(o&&o[k]!=null&&o[k]!=='') a.push(+o[k]); }); return a.length?a.reduce((p,q)=>p+q,0)/a.length:null; };
+  const rows=[
+    {n:'训练时长', u:'min',  tw:sum(tw,'diet_min'),   lw:sum(lw,'diet_min'),   d:0, good:(a,b)=>a>b},
+    {n:'训练天数', u:'天',   tw:cnt(tw,'diet_min'),   lw:cnt(lw,'diet_min'),   d:0, good:(a,b)=>a>b},
+    {n:'方案达标', u:'天',   tw:cnt(tw,'diet_done'),  lw:cnt(lw,'diet_done'),  d:0, good:(a,b)=>a>b},
+    {n:'日均摄入', u:'kcal', tw:avgv(tw,'diet_kcal'), lw:avgv(lw,'diet_kcal'), d:0, good:(a,b)=>Math.abs(a-ph.kcal)<=Math.abs(b-ph.kcal)},
+    {n:'平均体重', u:'斤',   tw:avgv(tw,'weight'),    lw:avgv(lw,'weight'),    d:1, good:(a,b)=>a<b},
+    {n:'平均腰围', u:'cm',   tw:avgv(tw,'diet_waist'),lw:avgv(lw,'diet_waist'),d:1, good:(a,b)=>a<b}
+  ];
+  const h=cmpBarsHtml(rows,
+    '训练类指标<b>越长越好</b>；体重与腰围<b>越短越好</b>（绿色 ▼ 表示降了）；'+
+    '日均摄入看的是<b>离 '+ph.kcal+' 多近</b>，不是越低越好。');
+  if(!h) return '<div class="empty">'+si('chart')+'本周与上周都还没有记录，打卡后这里会自动生成环比对比</div>';
+  return h;
+}
+/* ---------- 今日三项达成（环）----------
+   热量用「区间」判读：低/合适/超，颜色随状态变，不做「越多越绿」的错误暗示 */
+function dietTodayRings(ph){
+  const P=DIET_PLAN, d=day();
+  const kcal=+d.diet_kcal||0, prot=+d.diet_p||0, mins=+d.diet_min||0;
+  const dow=(new Date().getDay()+6)%7;
+  const todayPlan=P.train.plan[dow];
+  const planMin=todayPlan?todayPlan.m:0;
+  const kc=kcal?Math.min(100,kcal/ph.kcal*100):0;
+  const kCol=!kcal?'#8a97a6':(kcal<P.floor?'#d9534f':(kcal<=ph.kcal*1.05?'#2f6cc0':'#e0932f'));
+  const pc=prot?Math.min(100,prot/P.macro.p*100):0;
+  const pCol=prot>=P.macro.p?'#4f9d69':'#2f6cc0';
+  const mc=planMin?(mins/Math.max(planMin,1)*100):(mins>0?100:0);
+  const mCol=mins>=(planMin||1)?'#4f9d69':'#6a7fd6';
+  let h='<div class="flex wrap" style="gap:10px;justify-content:space-around">';
+  h+='<div style="text-align:center">'+dietRing(kc,kCol,kcal?Math.round(kcal/ph.kcal*100)+'%':'—',kcal?kcal+' / '+ph.kcal:'热量未记录')+
+     '<div class="muted" style="font-size:11.5px;margin-top:2px"><b>热量</b></div></div>';
+  h+='<div style="text-align:center">'+dietRing(pc,pCol,prot?Math.round(prot/P.macro.p*100)+'%':'—',prot?prot+' / '+P.macro.p+' g':'蛋白未记录')+
+     '<div class="muted" style="font-size:11.5px;margin-top:2px"><b>蛋白质</b></div></div>';
+  h+='<div style="text-align:center">'+dietRing(mc,mCol,mins?Math.round(mc)+'%':'—',
+      planMin?(mins+' / '+planMin+' min'):(mins?mins+' min':'今日休息'))+
+     '<div class="muted" style="font-size:11.5px;margin-top:2px"><b>训练时长</b></div></div>';
+  h+='</div>';
+  return h;
+}
+
+/* ---------- 累计减重与基准重算判断（v2.5 新增）----------
+   原方案多处文案承诺「体重每降 3kg 需重算一次 TDEE」，
+   但此前没有任何机制会真的提醒用户 —— 属于"说了却没做"。
+   这里把判断抽成函数，供减脂页与设置页共用，口径统一。 */
+function dietLostKg(){
+  const s=store.settings;
+  const start=+(s.dietStartJin||0);
+  if(!start) return null;
+  const ks=Object.keys(store.days).filter(function(k){
+    const o=store.days[k]; return o&&o.weight!=null&&o.weight!=='';
+  }).sort();
+  if(!ks.length) return null;
+  const latest=+store.days[ks[ks.length-1]].weight;
+  return {start:start, latest:latest, kg:(start-latest)/2, days:ks.length};
+}
+/* 每降 3kg 记一级；返回级数（0＝暂不需要重算） */
+function dietRecalcStep(){
+  const r=dietLostKg();
+  return (r&&r.kg>=3)? Math.floor(r.kg/3) : 0;
+}
+
 /* ---------- 减脂核心看板 ---------- */
 function renderDietBoard(){
-  const P=DIET_PLAN, ph=dietPhase(), d=day(), s=store.settings;
+  const P=DIET_PLAN, ph=dietPhase(), d=day(), s=store.settings, R=P.ref;
   const tgt=+(s.dietTargetJin||150), start=+(s.dietStartJin||170);
   const m30=lastNDays(30), m14=lastNDays(14);
   const cur=lastVal(m30,'weight');
-  const kcal=+d.diet_kcal||0, prot=+d.diet_p||0;
+  const kcal=+d.diet_kcal||0, prot=+d.diet_p||0, mins=+d.diet_min||0;
 
-  /* 速度：近 14 天首末差折算每周（斤/周），负值 = 下降 */
-  const wp=[]; m14.forEach(k=>{ const x=store.days[k];
-    if(x&&x.weight!=null&&x.weight!=='') wp.push(+x.weight); });
-  const speed=wp.length>=2?(wp[wp.length-1]-wp[0])/(wp.length-1)*7:null;
+  /* 速度：近 14 天最小二乘斜率 × 7 → 斤/周（负值＝下降）。比首末差抗噪 */
+  const wv=[]; m14.forEach(k=>{ const x=store.days[k];
+    if(x&&x.weight!=null&&x.weight!=='') wv.push(+x.weight); });
+  const sl=linReg(wv);
+  const speed=sl!=null?sl*7:null;
   const lost=cur!=null?start-cur:null;
   const togo=cur!=null?cur-tgt:null;
-  const eta=(togo!=null&&speed&&speed<-0.05)?Math.ceil(togo/Math.abs(speed)):null;
+  const eta=(togo!=null&&togo>0&&speed!=null&&speed<-0.05)?Math.ceil(togo/Math.abs(speed)):null;
+  const bmi=cur!=null?(cur/2)/(R.h*R.h):null;
+  const st=intakeStatus(kcal,ph);
+
   let html='';
 
-  /* ===== 1. 核心指标 ===== */
+  /* ==================== 分组一 · 今日执行 ==================== */
+  html+='<div class="d-group">今日执行<span class="gsub">今天要做什么</span></div>';
+
   html+='<div class="card"><h2>'+si('flame')+'减脂核心看板'+
       '<span class="pill blue" style="margin-left:auto">'+ph.name+' · '+ph.kcal+' kcal</span></h2>'+
     '<div class="sub">五练纯爬楼机 · 餐次占比 <b>25 / 35 / 10 / 30</b> · 每日缺口 <b>'+ph.def+' kcal</b>（占 TDEE '+
       Math.round(ph.def/P.tdee*100)+'%）'+(ph.day?' · 方案第 '+ph.day+' 天':'')+'</div>';
   html+='<div class="d-kpi">'+
     '<div class="d-box"><div class="k">当前体重</div><div class="v d-ink">'+(cur!=null?cur:'—')+(cur!=null?'<span style="font-size:12px"> 斤</span>':'')+'</div>'+
-      '<div class="t">起始 '+start+' 斤 · BMI '+((cur!=null?cur/2:start/2)/1.78/1.78).toFixed(1)+'</div></div>'+
+      '<div class="t">起始 '+start+' 斤'+(bmi?' · BMI '+bmi.toFixed(1)+(bmi>=R.bmiOver?'（超重）':'（正常）'):'')+'</div></div>'+
     '<div class="d-box"><div class="k">距目标</div><div class="v d-ink">'+(togo!=null?(togo>0?'差 '+togo.toFixed(1):'已达成'):'—')+'</div>'+
-      '<div class="t">目标 '+tgt+' 斤'+(eta?' · 预计约 '+eta+' 周':'')+'</div></div>'+
+      '<div class="t">目标 '+tgt+' 斤'+(eta?' · 按当前速度约 '+eta+' 周':'')+'</div></div>'+
     '<div class="d-box"><div class="k">近 14 天速度</div><div class="v d-ink">'+(speed!=null?(speed>0?'+':'')+speed.toFixed(2):'—')+'<span style="font-size:12px"> 斤/周</span></div>'+
-      '<div class="t">'+(speed==null?'记录体重后计算':(speed<-0.05?'下降中，节奏正常':(speed<0.05?'基本持平，留意平台期':'上升，需检查执行度')))+'</div></div>'+
+      '<div class="t">'+(speed==null?'记录体重后计算':
+        (speed<=R.speedTol*-1&&speed>=-1.0?'下降中，节奏正常（合理区间 0.6–1.0 斤/周）':
+        (speed<-1.0?'下降偏快，注意保住肌肉与精力':(Math.abs(speed)<=R.speedTol?'基本持平，留意平台期':'上升，需检查执行度'))))+'</div></div>'+
     '<div class="d-box"><div class="k">累计已减</div><div class="v d-ink">'+(lost!=null?(lost>0?lost.toFixed(1):'0')+'<span style="font-size:12px"> 斤</span>':'—')+'</div>'+
       '<div class="t">方案起始 '+s.dietStart+'</div></div>'+
   '</div>';
-  /* 平台期 / 安全底线提示 */
-  if(speed!=null && wp.length>=7 && Math.abs(speed)<0.1)
-    html+='<div class="d-warn" style="margin-top:10px">⚠️ 近两周体重基本持平。按顺序排查：① <b>隐性热量</b>（油/酱/饮料/坚果，重新精确记 3 天）；② <b>NEAT 下滑</b>（盯步数，每天补 2000–3000 步）；③ 体重已降 → 按每降 3kg 重算一次 TDEE；④ 确属平台期则安排 1–2 周<span class="d-outline">饮食休息</span>吃到 TDEE 后再回缺口。</div>';
+
+  html+='<div class="d-sec">'+si('target')+'今日摄入定位 · 与三条参考线对照</div>'+intakeCompare(kcal,ph);
+  html+='<div class="d-why" style="margin-top:8px">横轴 0–'+R.axisMax+' kcal，橙色竖线＝<b>方案目标 '+ph.kcal+' kcal</b>。'+
+    '读法：落在<b>目标与维持线之间</b>＝仍是缺口日；越过<b>维持线</b>＝当天没有缺口；跌破<b>安全下限</b>＝危险信号。'+st.t+'</div>';
+  html+='</div>';
+
+  /* 今日三项达成 */
+  html+='<div class="card"><h2>'+si('chart')+'今日三项达成</h2>'+
+    '<div class="sub">热量按<b>区间</b>判读（不是越多越好）· 蛋白 <b>'+P.macro.p+' g</b> 是纯有氧方案里唯一的保肌杠杆 · 训练时长对齐当日计划</div>'+
+    dietTodayRings(ph);
+  const leftover=ph.kcal-kcal;
+  if(kcal) html+='<div class="d-ok" style="margin-top:10px">'+(leftover>=0
+      ?'今日剩余可摄入 <span class="d-ink">'+Math.round(leftover)+'</span> kcal'+(prot<P.macro.p?'，还需补蛋白 <span class="d-ink">'+Math.round(P.macro.p-prot)+'</span> g':'，蛋白已达标')
+      :'今日已超 <span class="d-ink">'+Math.round(-leftover)+'</span> kcal，明天回到 '+ph.kcal+' 正常执行即可')+'</div>';
+  else html+='<div class="d-ok" style="margin-top:10px">在上方「摄入热量 / 蛋白质 / 训练时长」填入今日数据，这里会实时计算剩余额度。</div>';
+  html+='</div>';
+
+  /* 提示区 */
+  if(speed!=null && wv.length>=7 && Math.abs(speed)<=R.speedTol)
+    html+='<div class="d-warn" style="margin-top:10px">⚠️ 近两周体重基本持平。按顺序排查：① <b>隐性热量</b>（油/酱/饮料/坚果，重新精确记 3 天）；② <b>NEAT 下滑</b>（盯步数，每天补 2000–3000 步）；③ 体重已降 → 每降 3kg 重算一次 TDEE；④ 确属平台期则安排 1–2 周<span class="d-outline">饮食休息</span>吃到 TDEE 后再回缺口。</div>';
   if(kcal>0 && kcal<P.floor)
     html+='<div class="d-warn" style="margin-top:10px">🚨 今日摄入 <b>'+kcal+' kcal</b>，已低于安全底线 <span class="d-outline">'+P.floor+' kcal</span>（BMR×80%）。持续低于此线会掉肌肉、代谢下调、内分泌紊乱，<b>请勿再往下压</b>。</div>';
-  if(kcal>0 && kcal>ph.kcal+400)
-    html+='<div class="d-warn" style="margin-top:10px">⚠️ 今日摄入超出方案 '+Math.round(kcal-ph.kcal)+' kcal。单日超标不必补偿性节食，第二天回到 '+ph.kcal+' kcal 正常执行即可 —— <b>报复性节食才是真正的坑</b>。</div>';
-  html+='</div>';
+  if(prot>0 && prot<P.macro.p*0.8 && mins>0)
+    html+='<div class="d-warn" style="margin-top:10px">⚠️ 训练日蛋白只吃了 <b>'+prot+' g</b>（目标 '+P.macro.p+' g）。纯有氧方案下蛋白不足＝给肌肉开了分解窗口，<b>明天优先补齐这一项</b>。</div>';
+  /* v2.5：把「每降 3kg 重算基准」从文案变成真的会触发的提醒 */
+  const _rc=dietRecalcStep();
+  if(_rc>0){
+    const _lost=dietLostKg();
+    html+='<div class="d-warn" style="margin-top:10px">⚖️ <b>基准需重算</b>：已减少 <b>'+_lost.kg.toFixed(1)+' kg</b>（'+_lost.start+' → '+_lost.latest+' 斤）。'+
+      '体重每降 3kg，每日总消耗约下降 <b>60–100 kcal</b>，当前基准需重新校核：'+
+      '把目标下调约 <span class="d-outline">'+(_rc*80)+' kcal</span>（'+ph.kcal+' → '+Math.max(P.floor,ph.kcal-_rc*80)+' kcal），'+
+      '或把训练量上调，保持缺口仍在 15–20%。<b>别只是继续少吃</b>。</div>';
+  }
 
-  /* ===== 2. 体重趋势 ===== */
+  /* ==================== 分组二 · 趋势洞察 ==================== */
+  html+='<div class="d-group">趋势洞察<span class="gsub">走上去了没有 · 只看方向，不看单日</span></div>';
+
   html+='<div class="card"><h2>'+si('scale')+'体重趋势 · 近 30 天</h2>'+
-    '<div class="sub">橙线为方案目标线（'+tgt+' 斤）。只看<b>周均值方向</b>，单日波动 0.5–1.5 斤属正常（水分/食物/排泄）</div>'+
-    weightTrendSvg(30);
+    '<div class="sub">粗线为 <b>7 日均线</b>（真实趋势），浅线为每日实测（含水分/食物波动）。橙虚线＝目标 '+tgt+' 斤</div>'+
+    weightTrendSvg(30)+
+    '<div class="d-lgd">'+
+      '<span><i class="dot" style="background:#7aa9d8"></i>每日实测</span>'+
+      '<span><i style="background:#2f6cc0"></i>7 日均线（看这条）</span>'+
+      '<span><i class="dash"></i>目标 '+tgt+' 斤</span>'+
+    '</div>';
   const w7=lastNDays(7), wavg=avg(w7,'weight');
+  const waist=lastVal(lastNDays(14),'diet_waist');
   html+='<div class="flex wrap" style="gap:8px;margin-top:10px">'+
     '<span class="pill blue">7 天均值 <b>'+wavg+'</b> 斤</span>'+
-    '<span class="pill">30 天记录 <b>'+w7.length+'</b> 天窗口</span>'+
-    '<span class="pill '+(speed!=null&&speed<-0.05?'green':'yellow')+'">周均变化 <b>'+(speed!=null?(speed>0?'+':'')+speed.toFixed(2):'—')+'</b> 斤/周</span></div>';
-  html+='<p class="muted" style="margin-top:8px;font-size:12px">体重稳定但<b>腰围下降</b>= 体成分在优化（脂肪减、肌肉保），是好现象，不必焦虑体重数字。建议每月量一次腰围（肚脐水平，目标 <span class="d-outline">&lt; 90cm</span>）并固定角度拍照。</p></div>';
+    '<span class="pill '+(speed!=null&&speed<=-0.05?'green':'yellow')+'">周均变化 <b>'+(speed!=null?(speed>0?'+':'')+speed.toFixed(2):'—')+'</b> 斤/周</span>'+
+    (waist!=null?'<span class="pill '+(waist<R.waistWarn?'green':'yellow')+'">腰围 <b>'+waist+'</b> cm</span>':'')+
+  '</div>';
+  html+='<p class="muted" style="margin-top:8px;font-size:12px">'+
+    '<b>为什么看 7 日均线：</b>单日体重受水分、食物残留、排泄影响可达 ±1.5 斤，原始曲线会骗人；均线把噪声滤掉后才反映真实脂肪变化。'+
+    '体重<b>稳定但腰围下降</b>＝体成分在优化（脂肪减、肌肉保），是好事，不必焦虑体重数字。'+
+    '腰围建议每周固定一次、肚脐水平测量，警戒线 <span class="d-outline">&lt; '+R.waistWarn+' cm</span>。</p></div>';
 
-  /* ===== 3. 今日热量与蛋白达成 ===== */
-  const kcalPct=kcal?kcal/ph.kcal*100:0, protPct=prot?prot/P.macro.p*100:0;
-  html+='<div class="card"><h2>'+si('chart')+'今日达成度</h2>'+
-    '<div class="sub">目标：热量 <b>'+ph.kcal+' kcal</b> · 蛋白 <b>'+P.macro.p+' g</b>（蛋白是纯有氧方案里唯一的保肌杠杆）</div>'+
-    '<div class="flex wrap" style="gap:14px;justify-content:center">'+
-      '<div style="text-align:center">'+dietRing(kcalPct,P.col.p,kcal?Math.round(kcalPct)+'%':'—',kcal?kcal+' / '+ph.kcal:'热量未记录')+
-        '<div class="muted" style="font-size:12px;margin-top:2px">热量达成</div></div>'+
-      '<div style="text-align:center">'+dietRing(protPct,P.col.c,prot?Math.round(protPct)+'%':'—',prot?prot+' / '+P.macro.p+' g':'蛋白未记录')+
-        '<div class="muted" style="font-size:12px;margin-top:2px">蛋白质达成</div></div>'+
-    '</div>'+
-    (kcal?('<div class="d-ok" style="margin-top:10px">'+(kcal<=ph.kcal
-        ?'今日剩余可摄入 <span class="d-ink">'+Math.round(ph.kcal-kcal)+'</span> kcal'+(prot<P.macro.p?'，还需补蛋白 <span class="d-ink">'+Math.round(P.macro.p-prot)+'</span> g':'，蛋白已达标 👍')
-        :'今日已超 <span class="d-ink">'+Math.round(kcal-ph.kcal)+'</span> kcal，明天回到 '+ph.kcal+' 正常执行即可')+'</div>')
-      :'<div class="d-ok" style="margin-top:10px">在上方「摄入热量 / 蛋白质」填入今日数据，这里会实时计算剩余额度。</div>');
-  html+='</div>';
+  html+='<div class="card"><h2>'+si('chart')+'周环比 · 本周 vs 上周</h2>'+
+    '<div class="sub">同一把尺子比长短 —— 单周数值说明不了什么，<b>方向比绝对值重要</b></div>'+
+    weekCompare(ph)+'</div>';
 
-  /* ===== 4. 宏量配比 ===== */
+  html+='<div class="card"><h2>'+si('run')+'本周训练执行 · 五练爬楼机</h2>'+
+    '<div class="sub">稳态 / 金字塔间歇 / 变速三种模式轮换，周总量 <b>'+P.train.weeklyMin+' 分钟</b>。'+
+      '<b>频次比单次时长更重要</b>，守不住 5 天就先压缩时长，别减天数</div>'+
+    weekTrainGrid()+'</div>';
+
+  /* ==================== 分组三 · 方案结构 ==================== */
+  html+='<div class="d-group">方案结构<span class="gsub">方案长什么样 · 时间可自由，结构不能自由</span></div>';
+
   html+='<div class="card"><h2>'+si('target')+'宏量营养素配比</h2>'+
     '<div class="sub">按 <b>2.18 / 0.80 / 2.94 g/kg</b> 折算的热量占比。碳水不要再往下砍 —— 五练爬楼机的燃料就是它</div>'+
-    macroStack()+
-    '<div class="d-scroll" style="margin-top:12px"><table class="d-tb"><thead><tr><th>营养素</th><th>每日目标</th><th>折合热量</th><th>占比</th><th>作用</th></tr></thead><tbody>'+
-      '<tr><td class="dk">蛋白质</td><td class="n">185 g</td><td>740 kcal</td><td class="n">31.5%</td><td>纯有氧方案下的保肌主力，取 1.6–2.2g/kg 区间上限</td></tr>'+
-      '<tr><td class="dk">脂肪</td><td class="n">68 g</td><td>612 kcal</td><td class="n">26.0%</td><td>不低于 0.8g/kg，保障激素与脂溶性维生素</td></tr>'+
-      '<tr><td class="dk">碳水</td><td class="n">250 g</td><td>1000 kcal</td><td class="n">42.5%</td><td>训练供能 + 恢复，砍到 130g 以下不可持续</td></tr>'+
-    '</tbody></table></div>'+
-    '<p class="muted" style="margin-top:8px;font-size:12px">全天用油上限 <span class="d-outline">20–25 ml</span>（一勺 10ml ≈ 90 kcal，是最容易失控的隐性热量）；饮水 <b>2.5–3 L</b>，训练日再加 500ml。</p></div>';
+    macroStack()+'</div>';
 
-  /* ===== 5. 餐次占比结构 ===== */
   html+='<div class="card"><h2>'+si('clock')+'餐次热量占比结构</h2>'+
-    '<div class="sub">这是方案的骨架。午餐 35% 最大，因为要撑住下午训练与专注度；晚餐刻意留 30%，防「晚餐吃太少→深夜饿醒→报复性进食」</div>'+
+    '<div class="sub">午餐 35% 最大，因为要撑住下午训练与专注度；晚餐刻意留 30%，防「晚餐吃太少→深夜饿醒→报复性进食」</div>'+
     '<div class="flex wrap" style="gap:16px;align-items:center">'+mealDonut()+
       '<div class="d-legend" style="flex:1;min-width:170px;display:block">'+
-        DIET_PLAN.meals.map((m,i)=>{ const cols=[P.col.p,'#4a92dd',P.col.f,P.col.w];
+        P.meals.map((m,i)=>{ const cols=[P.col.p,'#4a92dd',P.col.f,P.col.w];
           return '<div class="d-li" style="margin:5px 0"><i style="background:'+cols[i]+'"></i>'+
             '<b>'+m.name+'</b> '+m.pct+'% · <b>'+m.kcal+'</b> kcal</div>'; }).join('')+
       '</div></div>'+
-    '<div class="d-scroll" style="margin-top:12px"><table class="d-tb"><thead><tr><th>餐次</th><th>占比</th><th>热量</th><th>蛋白</th><th>脂肪</th><th>碳水</th><th>时间锚点</th></tr></thead><tbody>'+
-      DIET_PLAN.meals.map(m=>'<tr><td class="dk">'+m.name+'</td><td class="n">'+m.pct+'%</td><td class="n">'+m.kcal+'</td><td>'+m.p+' g</td><td>'+m.f+' g</td><td>'+m.c+' g</td><td>'+m.time+'</td></tr>').join('')+
-      '<tr><td class="dk">合计</td><td class="n">100%</td><td class="n">2360</td><td class="n">185 g</td><td class="n">68 g</td><td class="n">250 g</td><td>—</td></tr>'+
-    '</tbody></table></div>'+
     '<div class="d-ok" style="margin-top:10px"><b>时间可以自由，结构不能自由。</b>用餐时间不锁钟点，只守两条边界：'+
       '<span class="d-outline">起床后 1 小时内吃早餐</span><span class="d-outline">睡前 3 小时结束最后一餐</span>；'+
-      '训练后 30–60 分钟的那份加餐建议卡点。⚠️ 「随时吃」最容易变成全天零散进食，看着都不多，全天轻松超 3000 kcal。</div></div>';
+      '训练后 30–60 分钟的那份加餐建议卡点。⚠️「随时吃」最容易变成全天零散进食，看着都不多，全天轻松超 3000 kcal。</div></div>';
 
-  /* ===== 6. 本周训练执行 ===== */
-  html+='<div class="card"><h2>'+si('run')+'本周训练执行 · 五练爬楼机</h2>'+
-    '<div class="sub">稳态 / 金字塔间歇 / 变速三种模式轮换，周总量 <b>175 分钟</b>。'
-      +'<b>频次比单次时长更重要</b>，守不住 5 天就先压缩时长，别减天数</div>'+
-    weekTrainGrid()+
-    '<div class="d-scroll" style="margin-top:12px"><table class="d-tb"><thead><tr><th>强度区间</th><th>心率（次/分）</th><th>体感</th><th>用途</th></tr></thead><tbody>'+
+  /* ==================== 分组四 · 方案基准（折叠） ==================== */
+  html+='<div class="d-group">方案基准<span class="gsub">数据依据 · 需要时再展开</span></div>';
+  html+='<details class="d-fold"><summary>'+si('doc')+'方案基准与明细（点击展开）<span class="fa">展开</span></summary><div class="fbody">';
+
+  html+='<div class="d-sec">营养与热量基准</div>'+
+    '<div class="d-scroll"><table class="d-tb"><thead><tr><th>项目</th><th>数值</th><th>说明</th></tr></thead><tbody>'+
+      '<tr><td class="dk">基础代谢 BMR</td><td class="n">'+P.bmr+' kcal</td><td>Mifflin-St Jeor 公式</td></tr>'+
+      '<tr><td class="dk">每日总消耗 TDEE</td><td class="n">'+P.tdee+' kcal</td><td>每周 5 练 → 中度活动系数 1.55</td></tr>'+
+      '<tr><td class="dk">适应期</td><td class="n">'+P.phase.adapt.kcal+' kcal</td><td>第 1–2 周，缺口 '+P.phase.adapt.def+'，先排水分建习惯</td></tr>'+
+      '<tr><td class="dk">主减期</td><td class="n">'+P.phase.main.kcal+' kcal</td><td>第 3–12 周，缺口 '+P.phase.main.def+'（占 TDEE '+Math.round(P.phase.main.def/P.tdee*100)+'%，不超 20% 上限）</td></tr>'+
+      '<tr><td class="dk">安全下限</td><td class="n">'+P.floor+' kcal</td><td>BMR×80%，任何时候不得低于此行</td></tr>'+
+      '<tr><td class="dk">预期速度</td><td class="n">0.6–0.9 kg/周</td><td>12 周预计减 7–10kg（170 → 150 斤左右）</td></tr>'+
+    '</tbody></table></div>';
+
+  html+='<div class="d-sec">宏量明细</div>'+
+    '<div class="d-scroll"><table class="d-tb"><thead><tr><th>营养素</th><th>每日目标</th><th>折合热量</th><th>占比</th><th>作用</th></tr></thead><tbody>'+
+      '<tr><td class="dk">蛋白质</td><td class="n">'+P.macro.p+' g</td><td>'+P.macroKcal.p+' kcal</td><td class="n">'+(P.macroKcal.p/(P.macroKcal.p+P.macroKcal.f+P.macroKcal.c)*100).toFixed(1)+'%</td><td>纯有氧方案下的保肌主力，取 1.6–2.2g/kg 区间上限</td></tr>'+
+      '<tr><td class="dk">脂肪</td><td class="n">'+P.macro.f+' g</td><td>'+P.macroKcal.f+' kcal</td><td class="n">'+(P.macroKcal.f/(P.macroKcal.p+P.macroKcal.f+P.macroKcal.c)*100).toFixed(1)+'%</td><td>不低于 0.8g/kg，保障激素与脂溶性维生素</td></tr>'+
+      '<tr><td class="dk">碳水</td><td class="n">'+P.macro.c+' g</td><td>'+P.macroKcal.c+' kcal</td><td class="n">'+(P.macroKcal.c/(P.macroKcal.p+P.macroKcal.f+P.macroKcal.c)*100).toFixed(1)+'%</td><td>训练供能 + 恢复，砍到 130g 以下不可持续</td></tr>'+
+    '</tbody></table></div>'+
+    '<p class="muted" style="margin-top:8px;font-size:12px">全天用油上限 <span class="d-outline">20–25 ml</span>（一勺 10ml ≈ 90 kcal，是最容易失控的隐性热量）；饮水 <b>2.5–3 L</b>，训练日再加 500ml。</p>';
+
+  html+='<div class="d-sec">餐次明细</div>'+
+    '<div class="d-scroll"><table class="d-tb"><thead><tr><th>餐次</th><th>占比</th><th>热量</th><th>蛋白</th><th>脂肪</th><th>碳水</th><th>时间锚点</th></tr></thead><tbody>'+
+      P.meals.map(m=>'<tr><td class="dk">'+m.name+'</td><td class="n">'+m.pct+'%</td><td class="n">'+m.kcal+'</td><td>'+m.p+' g</td><td>'+m.f+' g</td><td>'+m.c+' g</td><td>'+m.time+'</td></tr>').join('')+
+      '<tr><td class="dk">合计</td><td class="n">100%</td><td class="n">'+P.phase.main.kcal+'</td><td class="n">'+P.macro.p+' g</td><td class="n">'+P.macro.f+' g</td><td class="n">'+P.macro.c+' g</td><td>—</td></tr>'+
+    '</tbody></table></div>';
+
+  html+='<div class="d-sec">训练模式与心率区间</div>'+
+    '<div class="d-scroll"><table class="d-tb"><thead><tr><th>强度区间</th><th>心率（次/分）</th><th>体感</th><th>用途</th></tr></thead><tbody>'+
       '<tr><td class="dk">热身区</td><td class="n">'+P.hr.warm+'</td><td>轻松，能正常说话</td><td>热身与冷却</td></tr>'+
       '<tr><td class="dk">燃脂区</td><td class="n">'+P.hr.burn+'</td><td>能断续说完整句子</td><td>稳态燃脂（周一/周四）</td></tr>'+
       '<tr><td class="dk">有氧区</td><td class="n">'+P.hr.aero+'</td><td>只能说短句</td><td>变速与间歇的快速段</td></tr>'+
       '<tr><td class="dk">无氧区</td><td class="n">'+P.hr.ana+'</td><td>说不出完整句子</td><td>间歇峰值（短暂）</td></tr>'+
-    '</tbody></table></div>'+
-    '<div class="d-ok" style="margin-top:10px"><b>爬楼机技术要点：</b>躯干直立别趴扶手（趴扶手实际做功少 20–30%）、全脚掌踩实、膝盖对准脚尖。'
-      +'每次训练后重点拉伸<span class="d-outline">小腿</span><span class="d-outline">髂腰肌</span>—— 长期只爬楼机，这两处会变紧、踝关节活动度下降。</div>'+
-    '<div class="d-warn" style="margin-top:10px">出现<b>胸闷、胸痛、心悸、头晕、眼前发黑</b>立即停止并就医；膝前侧尖锐疼痛立即改骑行或椭圆机。<b>请勿叠加 16:8 断食或进一步压热量。</b></div></div>';
+    '</tbody></table></div>';
 
-  /* ===== 7. 方案基准 ===== */
-  html+='<div class="card"><h2>'+si('target')+'方案基准（2026-09-27 复核）</h2>'+
-    '<div class="sub">数据依据身高体重与活动系数测算，仅供参考；以体感与体重趋势为准</div>'+
-    '<div class="d-scroll"><table class="d-tb"><thead><tr><th>项目</th><th>数值</th><th>说明</th></tr></thead><tbody>'+
-      '<tr><td class="dk">基础代谢 BMR</td><td class="n">1848 kcal</td><td>Mifflin-St Jeor 公式</td></tr>'+
-      '<tr><td class="dk">每日总消耗 TDEE</td><td class="n">2865 kcal</td><td>每周 5 练 → 中度活动系数 1.55</td></tr>'+
-      '<tr><td class="dk">适应期</td><td class="n">2560 kcal</td><td>第 1–2 周，缺口 300，先排水分建习惯</td></tr>'+
-      '<tr><td class="dk">主减期</td><td class="n">2360 kcal</td><td>第 3–12 周，缺口 500（占 TDEE 17.5%，不超 20% 上限）</td></tr>'+
-      '<tr><td class="dk">安全下限</td><td class="n">1478 kcal</td><td>BMR×80%，任何时候不得低于此行</td></tr>'+
-      '<tr><td class="dk">预期速度</td><td class="n">0.6–0.9 kg/周</td><td>12 周预计减 7–10kg（170 → 150 斤左右）</td></tr>'+
-    '</tbody></table></div>'+
+  html+='<div class="d-sec">执行与安全要点</div>'+
+    '<div class="d-ok"><b>爬楼机技术要点：</b>躯干直立别趴扶手（趴扶手实际做功少 20–30%）、全脚掌踩实、膝盖对准脚尖。'+
+      '每次训练后重点拉伸<span class="d-outline">小腿</span><span class="d-outline">髂腰肌</span>—— 长期只爬楼机，这两处会变紧、踝关节活动度下降。</div>'+
+    '<div class="d-warn" style="margin-top:10px">出现<b>胸闷、胸痛、心悸、头晕、眼前发黑</b>立即停止并就医；膝前侧尖锐疼痛立即改骑行或椭圆机。<b>请勿叠加 16:8 断食或进一步压热量。</b></div>'+
     '<p class="muted" style="margin-top:10px;font-size:12px"><b>方案沿革：</b>上一版基准为运动日 2486 / 休息日 1989 kcal（2026-09 初版）。'+
       '因活动等级由「轻度 1.375」修正为「中度 1.55」，旧缺口达 TDEE 的 29%，超出 20% 安全上限，已被本次复核取代；'+
       '<b>历史打卡数据未删除</b>，仍在本地存储中完整可读。</p>'+
-    '<p class="muted" style="margin-top:6px;font-size:12px">⚠️ 本方案仅供参考，不替代专业医疗诊断。如有慢性疾病、运动损伤史或正在服药，请先咨询医生。</p></div>';
+    '<p class="muted" style="margin-top:6px;font-size:12px">⚠️ 本方案仅供参考，不替代专业医疗诊断。如有慢性疾病、运动损伤史或正在服药，请先咨询医生。</p>';
+  html+='</div></details>';
 
   return html;
 }
+
 function renderGoalPage(g){
   const G=GOALS[g]; const d=day(); const s=store.settings;
   let html='<div class="card"><h2>'+si(G.icon)+G.name+' · 今日打卡</h2><div class="sub">'+todayStr()+' · 细致记录，稳步蜕变</div></div>';
@@ -1890,12 +2180,81 @@ function cycleStatus(title){ const s=store.inspiration.saved.find(x=>x.title===d
 function removeSaved(title){ store.inspiration.saved=store.inspiration.saved.filter(x=>x.title!==decodeURIComponent(title)); save(); openSaved(); toast('已删除'); }
 
 /* ============ 复盘专区 ============ */
+/* ---------- 今日客观数据速览（复盘用）----------
+   把当天所有真实记录压成 6 格，让「主观打分」有一个可对照的客观基线。
+   状态色语义：ok＝达标 / no＝需要注意 / 空＝中性（无固定目标） */
+function rvGrid(d){
+  const P=DIET_PLAN, ph=dietPhase(), s=store.settings;
+  const dow=(new Date().getDay()+6)%7;
+  const plan=P.train.plan[dow];
+  const planMin=plan? plan.m : 0;
+  const fitMin=+d.diet_min||0;
+  const kcal=+d.diet_kcal||0;
+  const prot=+d.diet_p||0;
+  const sl=sleepHours(d);
+  const slT=sleepTargetH();
+  const cell=function(v,u,l,st){
+    return '<div class="rv-cell'+(st?' '+st:'')+'">'+
+      '<div class="rv-v">'+v+(u?'<small> '+u+'</small>':'')+'</div>'+
+      '<div class="rv-l">'+l+'</div></div>';
+  };
+  let h='<div class="rv-grid">';
+  /* ① 今日完成度（与成长模块同一口径） */
+  const gp=dailyPct();
+  h+=cell(gp,'%','今日完成度', gp>=80?'ok':(gp>=50?'':'no'));
+  /* ② 训练：与当日计划对齐，休息日不练才是对的 */
+  if(planMin) h+=cell(fitMin||'—','min','训练（计划 '+planMin+'）', fitMin>=planMin?'ok':(fitMin>0?'':'no'));
+  else        h+=cell(fitMin||'—','min','训练（休息日）', fitMin>0?'':'ok');
+  /* ③ 摄入热量：区间语义，不是越低越好 */
+  const kc=kcal? kcal : null;
+  let kSt='';
+  if(kc==null) kSt='no';
+  else if(kc<P.floor||kc>P.tdee) kSt='no';
+  else if(Math.abs(kc-ph.kcal)<=ph.kcal*0.1) kSt='ok';
+  h+=cell(kc==null?'—':kc,'kcal','摄入（目标 '+ph.kcal+'）', kSt);
+  /* ④ 蛋白质 */
+  const pSt=prot? (prot>=P.macro.p*0.9?'ok':(prot>=P.macro.p*0.75?'':'no')) : 'no';
+  h+=cell(prot||'—','g','蛋白质（目标 '+P.macro.p+'）', pSt);
+  /* ⑤ 睡眠（由入睡/起床时间反推目标） */
+  h+=cell(sl>0? sl.toFixed(1):'—','h','睡眠（目标 '+slT.toFixed(1)+'）', sl>0?(sl>=slT-0.3?'ok':'no'):'');
+  /* ⑥ 护肤 */
+  const sk=!!(d.sk_am&&d.sk_pm);
+  h+=cell((d.sk_am?'晨 ':'')+(d.sk_pm?'晚':'')||'—','','分区护肤', sk?'ok':(d.sk_am||d.sk_pm?'':'no'));
+  h+='</div>';
+  return h;
+}
+
+/* ---------- 近 14 天自评分数趋势 ---------- */
+function reviewTrend(){
+  const ks=lastNDays(14);
+  const vals=ks.map(function(k){ const r=store.reviews[k]; return (r&&r.score)? +r.score : null; });
+  const ok=vals.filter(function(v){ return v!=null; });
+  if(!ok.length) return '<div class="empty">'+si('star')+'还没有自评记录；从今天开始打分，坚持两周后这里会出现你的执行情绪曲线</div>';
+  const avg=ok.reduce(function(a,b){ return a+b; },0)/ok.length;
+  const last=ok[ok.length-1];
+  let h='<div class="spk-row"><div class="sl">自评分数</div>'+
+        '<div>'+sparkSvg(vals,{color:'#e0932f', target:8, h:44})+'</div>'+
+        '<div class="sv">'+avg.toFixed(1)+'<small> /10</small></div></div>';
+  h+='<div class="d-why">共 '+ok.length+' 次自评，平均 <b>'+avg.toFixed(1)+'</b> 分，最近一次 <b>'+last+'</b> 分；'+
+     '橙色虚线＝<b>8 分</b>（优秀线）。分数长期偏低不一定是执行力差，也可能是<b>标准定得太严</b>——'+
+     '若连续 3 天低于 5 分，优先把目标颗粒度调小，而不是加压。</div>';
+  return h;
+}
+
 function renderReview(){
   const d=day(); const r=store.reviews[todayStr()]||(store.reviews[todayStr()]={});
   let html='<div class="card"><h2>'+si('doc')+'每日执行复盘</h2><div class="sub">'+todayStr()+' · 诚实面对，稳步迭代</div></div>';
+  /* ① 客观数据（v2.5 新增）：先看事实，再打分 */
+  html+='<div class="card"><h2>'+si('chart')+'今日客观数据</h2>'+
+    '<div class="sub">全部取自真实打卡，不用回忆、不用估</div>'+
+    rvGrid(d)+
+    '<div class="rv-note">把下面的 ★ 主观分和这里的客观完成度对照看：<b>两者差得越远</b>，'+
+    '越说明「感觉」与「事实」有偏差——这正是复盘最该抓的地方。</div></div>';
+  /* ② 主观打分 + 自评趋势 */
   html+='<div class="card"><h2>① 今日完成度</h2>'+
     '<div class="stars" id="stars">'+[1,2,3,4,5,6,7,8,9,10].map(n=>'<span class="'+(n<=(r.score||0)?'on':'')+'" data-n="'+n+'">★</span>').join('')+'</div>'+
-    '<div class="muted" style="margin-top:4px" id="scoreTxt">'+(r.score?r.score+' 分':'点击星星打分（0-10）')+'</div></div>';
+    '<div class="muted" style="margin-top:4px" id="scoreTxt">'+(r.score?r.score+' 分':'点击星星打分（0-10）')+'</div>'+
+    '<div class="d-sec">近 14 天自评趋势</div><div class="rv-trend">'+reviewTrend()+'</div></div>';
   html+='<div class="card"><h2>② 未完成 & 亮点 & 痛点</h2>'+
     areaField('undo','未完成任务：原因拆解（客观阻碍/主观惰性）',r.undo,'如：运动偷懒——客观加班；主观想刷手机')+
     areaField('highlight','当日亮点',r.highlight,'做得好的习惯 / 有效收获')+
@@ -1911,37 +2270,239 @@ function renderReview(){
   html+='<div class="section-title">④ 长期月度总复盘</div>';
   html+='<div class="card"><h2>'+si('chart')+' 月度总览</h2>'+
     areaField('month_r','整月：作息规律度 / 减脂成果 / 痘印修复 / 英语积累 / 总储蓄 / 踩坑总结 / 下月目标',r.month_r,'月底填写')+
-    '<button class="btn ghost sm" onclick="genMonthSummary()">'+si('spark')+' 自动汇总本月数据</button></div>';
+    '<button class="btn ghost sm" onclick="genMonthSummary()">'+si('spark')+' 自动汇总本月数据</button>'+
+    '<div class="rv-note">汇总会覆盖 <b>训练 / 减脂 / 睡眠 / 护肤 / 英语 / 财务</b> 六类真实数据，'+
+    '你需要补的只是数据之外的判断（踩坑、下月目标）。</div></div>';
   const p=$('#p-review'); p.innerHTML=html;
   p.querySelectorAll('.stars span').forEach(s=>s.addEventListener('click',()=>{
     const n=+s.dataset.n; r.score=n; store.reviews[todayStr()]=r; save();
     p.querySelectorAll('.stars span').forEach(x=>x.classList.toggle('on',+x.dataset.n<=n));
     $('#scoreTxt').textContent=n+' 分';
+    /* v2.5：打完分即时刷新趋势，免手动重进 */
+    const box=p.querySelector('.rv-trend'); if(box) box.innerHTML=reviewTrend();
   }));
   p.querySelectorAll('textarea.txt').forEach(t=>t.addEventListener('input',()=>{ const rr=store.reviews[todayStr()]||{}; rr[t.dataset.k]=t.value; store.reviews[todayStr()]=rr; save(); }));
 }
 function genMonthSummary(){
-  const m=todayStr().slice(0,7); const days=Object.keys(store.days).filter(k=>k.slice(0,7)===m);
-  let fit=0,sleepSum=0,sleepN=0,exp=0,save=0;
-  days.forEach(k=>{ const d=store.days[k]; if(d.fit_done)fit++;
-    const h=sleepHours(d); if(h>0){sleepSum+=h;sleepN++;} exp+=(d.expenses||[]).reduce((a,e)=>a+(+e.amt||0),0); save+=(+d.save_today||0); });
-  const avgSleep= sleepN? (sleepSum/sleepN).toFixed(1):'—';
-  const txt='【'+m+' 自动汇总】训练 '+fit+'/'+days.length+' 天；平均睡眠 '+avgSleep+'h；总支出 ¥'+exp.toFixed(0)+'；总储蓄 ¥'+save.toFixed(0)+'（目标 ¥'+store.settings.monthlySavings+'）。请补充：减脂成果、痘印修复进度、英语积累量、踩坑总结与下月目标。';
-  const r=store.reviews[todayStr()]||{}; r.month_r=txt; store.reviews[todayStr()]=r; save(); renderReview(); toast('已生成月度汇总草稿');
+  const m=todayStr().slice(0,7);
+  const days=Object.keys(store.days).filter(k=>k.slice(0,7)===m).sort();
+  if(!days.length){ toast('本月还没有打卡数据'); return; }
+  const a=agg(days), P=DIET_PLAN;
+  /* 减脂：取本月首末有效体重 / 腰围，算真实变化量 */
+  const wks=days.filter(k=>{ const d=store.days[k]; return d&&d.weight!=null&&d.weight!==''; });
+  const w1=wks.length? +store.days[wks[0]].weight : null;
+  const w2=wks.length? +store.days[wks[wks.length-1]].weight : null;
+  let wtLine='';
+  if(w1!=null&&w2!=null){
+    const dw=w1-w2;
+    wtLine='· 体重：'+w1+' → '+w2+' 斤（'+(dw>0?'↓ 减 ':dw<0?'↑ 增 ':'持平 ')+Math.abs(dw).toFixed(1)+' 斤）';
+    const wss=days.filter(k=>{ const d=store.days[k]; return d&&d.diet_waist!=null&&d.diet_waist!==''; });
+    if(wss.length>=2){
+      const v1=+store.days[wss[0]].diet_waist, v2=+store.days[wss[wss.length-1]].diet_waist, dw2=v1-v2;
+      wtLine+='，腰围 '+v1+' → '+v2+' cm（'+(dw2>0?'↓ ':dw2<0?'↑ ':'')+Math.abs(dw2).toFixed(1)+' cm）';
+    }
+    wtLine+='\n';
+  }
+  const txt=
+    '【'+m+' 自动汇总 · 覆盖 '+a.days+' 天记录】\n'+
+    '· 训练：完成 '+a.fit+' 天，累计 '+a.dminSum+' min（日均 '+a.dmin+' min，计划 '+P.train.weeklyMin+' min/周）\n'+
+    '· 减脂：方案达标 '+a.diet+' 天；日均摄入 '+a.dkcal+' kcal（目标 '+dietPhase().kcal+'）、蛋白 '+a.dp+' g\n'+
+    wtLine+
+    '· 习惯：平均睡眠 '+a.sleep+' h，完整护肤 '+a.sk+' 天，英语学习 '+a.en+' 天，日均饮水 '+a.water+' ml\n'+
+    '· 财务：总支出 ¥'+Math.round(a.exp)+'（日均 ¥'+Math.round(a.exp/a.days)+'），总储蓄 ¥'+Math.round(a.save)+
+      '（月目标 ¥'+store.settings.monthlySavings+'，完成 '+monthlySavePct()+'%）\n'+
+    '——以下请自己补：踩坑总结、下月目标、以及数据没覆盖到的判断。';
+  const r=store.reviews[todayStr()]||{}; r.month_r=txt; store.reviews[todayStr()]=r; save(); renderReview();
+  toast('已按六类真实数据生成汇总草稿');
 }
 function sleepHours(d){ if(!d.sleep_bed||!d.sleep_wake) return 0;
   const [bh,bm]=d.sleep_bed.split(':').map(Number),[wh,wm]=d.sleep_wake.split(':').map(Number);
   let h=wh*60+wm-(bh*60+bm); if(h<0)h+=1440; return h/60; }
 
+/* ==================================================================
+   v2.5 通用可视化工具（报表 / 复盘共用）
+   设计原则：任何数字都要有参照系（分母 / 目标 / 上周），
+             不出现「孤零零一个数」；达标与否用颜色一眼可辨。
+   ================================================================== */
+
+/* ---------- 时间换算：把 "HH:MM" 转成分钟数 ---------- */
+function timeToMin(t){
+  if(!t) return null;
+  const a=String(t).split(':'); const h=+a[0], m=+a[1];
+  if(isNaN(h)||isNaN(m)) return null;
+  return h*60+m;
+}
+
+/* ---------- 睡眠时长目标：由「入睡目标 / 起床目标」反推 ----------
+   这样目标和用户自己设的作息联动，而不是写死一个 8 小时。 */
+function sleepTargetH(){
+  const s=store.settings;
+  const b=timeToMin(s.bedGoal), w=timeToMin(s.wakeGoal);
+  if(b==null||w==null) return 7.5;
+  let d=w-b; if(d<=0) d+=1440;
+  const h=d/60;
+  return (h>=4&&h<=14)? h : 7.5;
+}
+
+/* ---------- 迷你趋势线（sparkline）----------
+   把一段数值压成折线 + 面积。缺失值保留横轴占位、不连线，避免曲线「造假」。
+   viewBox 固定宽度后横向拉伸，描边用 vector-effect=non-scaling-stroke 防止变形。 */
+let _spkSeq=0;
+function sparkSvg(vals, opt){
+  const o=Object.assign({h:40, color:'#2f6cc0', target:null, empty:'需 2 天以上记录'}, opt||{});
+  const n=vals.length, H=o.h, VBW=200, padY=6;
+  const pts=[];
+  vals.forEach(function(v,i){ if(v!=null&&v!==''&&!isNaN(+v)) pts.push({i:i, v:+v}); });
+  if(pts.length<2){
+    return '<div class="spk-wrap" style="height:'+H+'px;display:flex;align-items:center;justify-content:center">'+
+      '<span style="font-size:10.5px;color:#8a97a6">'+o.empty+'</span></div>';
+  }
+  const vs=pts.map(function(p){ return p.v; });
+  let lo=Math.min.apply(null,vs), hi=Math.max.apply(null,vs);
+  if(o.target!=null&&isFinite(o.target)){ if(o.target>hi)hi=o.target; if(o.target<lo)lo=o.target; }
+  if(hi-lo<1e-9){ hi+=1; lo-=1; }
+  const X=function(i){ return n<2? VBW/2 : 2+(VBW-4)*i/(n-1); };
+  const Y=function(v){ return padY+(H-padY*2)*(1-(v-lo)/(hi-lo)); };
+  const line=pts.map(function(p,k){ return (k?'L':'M')+X(p.i).toFixed(2)+' '+Y(p.v).toFixed(2); }).join(' ');
+  const area='M'+X(pts[0].i).toFixed(2)+' '+(H-padY).toFixed(2)+' '+
+    pts.map(function(p){ return 'L'+X(p.i).toFixed(2)+' '+Y(p.v).toFixed(2); }).join(' ')+
+    ' L'+X(pts[pts.length-1].i).toFixed(2)+' '+(H-padY).toFixed(2)+' Z';
+  const gid='spk'+(_spkSeq++);
+  let h='<svg viewBox="0 0 '+VBW+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="none" style="display:block">'+
+    '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'+
+      '<stop offset="0" stop-color="'+o.color+'" stop-opacity=".34"/>'+
+      '<stop offset="1" stop-color="'+o.color+'" stop-opacity="0"/></linearGradient></defs>';
+  if(o.target!=null&&isFinite(o.target)){
+    h+='<line x1="0" y1="'+Y(o.target).toFixed(2)+'" x2="'+VBW+'" y2="'+Y(o.target).toFixed(2)+
+       '" stroke="#e0932f" stroke-width="1.3" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>';
+  }
+  h+='<path d="'+area+'" fill="url(#'+gid+')"/>';
+  h+='<path d="'+line+'" fill="none" stroke="'+o.color+'" stroke-width="1.9" stroke-linejoin="round" '+
+     'stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+  h+='<circle cx="'+X(pts[pts.length-1].i).toFixed(2)+'" cy="'+Y(pts[pts.length-1].v).toFixed(2)+
+     '" r="2.4" fill="'+o.color+'"/></svg>';
+  return '<div class="spk-wrap">'+h+'</div>';
+}
+
+/* ---------- 环比对比条（通用渲染器）----------
+   rows: [{n 名称, u 单位, tw 本周值, lw 上周值, d 小数位, good(a,b) 是否向好}] */
+function cmpBarsHtml(rows, note){
+  const usable=rows.filter(function(r){ return (r.tw!=null&&r.tw!==0)||(r.lw!=null&&r.lw!==0); });
+  if(!usable.length) return '';
+  const hasLast=rows.some(function(r){ return r.lw!=null&&r.lw>0; });
+  let h='';
+  rows.forEach(function(r){
+    if((r.tw==null||r.tw===0)&&(r.lw==null||r.lw===0)) return;
+    const a=r.tw==null?null:r.tw, b=r.lw==null?null:r.lw;
+    const mx=Math.max(a||0, b||0, 1);
+    let pill='';
+    if(a!=null&&b!=null){
+      const dv=a-b, flat=Math.abs(dv)<0.005;
+      const cls=flat?'flat':(r.good(a,b)?'up':'down');
+      pill='<br><span class="d-delta '+cls+'">'+(flat?'＝':(dv>0?'▲ ':'▼ ')+Math.abs(dv).toFixed(r.d))+'</span>';
+    }
+    h+='<div class="d-cmp"><div class="cl">'+r.n+'</div>'+
+       '<div class="ct"><div class="cf" style="width:'+(a==null?0:Math.min(100,a/mx*100)).toFixed(1)+'%;background:#2f6cc0"></div>'+
+         (b!=null?'<div class="cmk" style="left:'+Math.min(100,b/mx*100).toFixed(1)+'%"></div>':'')+
+       '</div>'+
+       '<div class="cv">'+(a==null?'—':a.toFixed(r.d))+'<small> '+r.u+'</small>'+pill+'</div></div>';
+  });
+  h+='<div class="d-why">蓝条＝<b>本周</b>'+
+     (hasLast?'，橙色竖线＝<b>上周</b>的同一数值（同一条刻度，可直接比长短）':'')+'。'+note+'</div>';
+  return h;
+}
+
+/* ---------- 近 7 天核心指标迷你趋势 ---------- */
+function trendRows(days){
+  const ph=dietPhase();
+  const pick=function(k,d){
+    if(!d) return null;
+    if(k==='__sleep'){ const h=sleepHours(d); return h>0? +h.toFixed(2) : null; }
+    if(k==='__exp'){ const v=(d.expenses||[]).reduce(function(a,e){ return a+(+e.amt||0); },0); return isFinite(v)? v : null; }
+    const v=d[k]; return (v==null||v==='')? null : +v;
+  };
+  const defs=[
+    {n:'训练时长', k:'diet_min',  u:'min',  c:'#2f6cc0', tgt:35,        sum:true,  d:0},
+    {n:'摄入热量', k:'diet_kcal', u:'kcal', c:'#e0932f', tgt:ph.kcal,   sum:false, d:0},
+    {n:'睡眠时长', k:'__sleep',   u:'h',    c:'#6a7fd6', tgt:+sleepTargetH().toFixed(1), sum:false, d:1},
+    {n:'当日支出', k:'__exp',     u:'元',   c:'#4f9d69', tgt:null,      sum:false, d:0}
+  ];
+  let h='';
+  defs.forEach(function(df){
+    const arr=days.map(function(k){ return pick(df.k, store.days[k]); });
+    const ok=arr.filter(function(v){ return v!=null; });
+    if(!ok.length) return;
+    const tot=ok.reduce(function(a,b){ return a+b; },0);
+    const shown=df.sum? tot : tot/ok.length;
+    h+='<div class="spk-row">'+
+         '<div class="sl">'+df.n+'</div>'+
+         '<div>'+sparkSvg(arr,{color:df.c, target:df.tgt})+'</div>'+
+         '<div class="sv">'+shown.toFixed(df.d)+'<small> '+df.u+'</small></div>'+
+       '</div>';
+  });
+  if(!h) return '<div class="empty">'+si('chart')+'近 7 天还没有可成图的数据，打卡后会自动生成趋势</div>';
+  return h+'<div class="d-why">橙色虚线＝<b>参照值</b>（训练 35 min／摄入 '+ph.kcal+' kcal／睡眠 '+sleepTargetH().toFixed(1)+' h）。'+
+    '缺失值不连线，曲线不会因没打卡而「假装下降」。</div>';
+}
+
+/* ---------- 周环比（跨模块）
+   注：weekKeys() 为既有函数（周一为一周起点），此处直接复用，不重复定义。 */
+function weeklyCompareBlock(ph){
+  const tw=weekKeys();
+  const lm=new Date(tw[0]); lm.setDate(lm.getDate()-7);
+  const lw=[];
+  for(let i=0;i<7;i++){ const x=new Date(lm); x.setDate(lm.getDate()+i);
+    lw.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')); }
+  const sumF=function(ks,fn){ let s=0; ks.forEach(function(x){ const o=store.days[x]; if(o){ const v=fn(o); if(isFinite(v)) s+=v; } }); return s; };
+  const avgF=function(ks,fn){ let s=0,n=0; ks.forEach(function(x){ const o=store.days[x]; if(o){ const v=fn(o); if(v!=null&&isFinite(v)){ s+=v; n++; } } }); return n? s/n : null; };
+  const minOf=function(o){ return +o.diet_min||0; };
+  const kcalOf=function(o){ return (o.diet_kcal==null||o.diet_kcal==='')? null : +o.diet_kcal; };
+  const wtOf=function(o){ return (o.weight==null||o.weight==='')? null : +o.weight; };
+  const expOf=function(o){ return (o.expenses||[]).reduce(function(a,e){ return a+(+e.amt||0); },0); };
+  const saveOf=function(o){ return +o.save_today||0; };
+  const doneOf=function(o){ return o.diet_done? 1 : 0; };
+  const cntDay=function(ks,fn){ let n=0; ks.forEach(function(x){ const o=store.days[x]; if(o&&fn(o)>0) n++; }); return n; };
+
+  const rows=[
+    {n:'训练时长', u:'min',  tw:sumF(tw,minOf),  lw:sumF(lw,minOf),  d:0, good:function(a,b){return a>b;}},
+    {n:'训练天数', u:'天',   tw:cntDay(tw,minOf), lw:cntDay(lw,minOf), d:0, good:function(a,b){return a>b;}},
+    {n:'打卡达标', u:'天',   tw:cntDay(tw,doneOf), lw:cntDay(lw,doneOf), d:0, good:function(a,b){return a>b;}},
+    {n:'日均摄入', u:'kcal', tw:avgF(tw,kcalOf), lw:avgF(lw,kcalOf), d:0, good:function(a,b){return Math.abs(a-ph.kcal)<=Math.abs(b-ph.kcal);}},
+    {n:'平均体重', u:'斤',   tw:avgF(tw,wtOf),   lw:avgF(lw,wtOf),   d:1, good:function(a,b){return a<b;}},
+    {n:'总储蓄',   u:'元',   tw:sumF(tw,saveOf), lw:sumF(lw,saveOf), d:0, good:function(a,b){return a>b;}},
+    {n:'总支出',   u:'元',   tw:sumF(tw,expOf),  lw:sumF(lw,expOf),  d:0, good:function(a,b){return a<b;}}
+  ];
+  const h=cmpBarsHtml(rows,
+    '训练与储蓄类<b>越长越好</b>；支出与体重<b>越短越好</b>（绿色 ▼ 表示降了）；'+
+    '日均摄入看的是<b>离 '+ph.kcal+' kcal 多近</b>，不是越低越好。');
+  if(!h) return '<div class="empty">'+si('chart')+'本周与上周都还没有记录，打卡后这里会自动生成环比对比</div>';
+  return h;
+}
+
 /* ============ 报表 ============ */
 function renderReport(){
-  const t=todayStr(); const wk=lastNDays(7), mo=lastNDays(31).filter(k=>k.slice(0,7)===t.slice(0,7));
+  const t=todayStr(); const s=store.settings, ph=dietPhase();
+  const wk=lastNDays(7), mo=lastNDays(31).filter(k=>k.slice(0,7)===t.slice(0,7));
   const w=agg(wk), m=agg(mo);
-  let html='<div class="card"><h2>'+si('chart')+'每周报表</h2><div class="sub">最近 7 天（'+wk[0]+' ~ '+wk[wk.length-1]+'）</div>'+statBlock(w)+'</div>';
-  html+='<div class="card"><h2>'+si('chart')+'月度报表</h2><div class="sub">'+t.slice(0,7)+' 至今</div>'+statBlock(m)+
-    '<div class="field" style="margin-top:8px"><label>月度储蓄目标进度</label><div class="bar"><i style="width:'+Math.min(100,monthlySavePct())+'%"></i></div>'+
-    '<div class="water-stat"><span>¥'+monthSave().toFixed(0)+'</span><span>目标 ¥'+store.settings.monthlySavings+'</span></div></div></div>';
-  html+='<div class="card"><h2>'+si('skin')+' 皮肤状态趋势（近7天）</h2>'+skinTrend(wk)+'</div>';
+  const mElapsed=Math.max(1,+t.slice(8,10));      /* 本月已过天数 */
+  let html='';
+  /* —— 周报：分组统计 + 趋势 + 环比 —— */
+  html+='<div class="card"><h2>'+si('chart')+'每周报表</h2>'+
+    '<div class="sub">最近 7 天（'+wk[0].slice(5)+' ~ '+wk[wk.length-1].slice(5)+'）· 有记录 '+w.days+' 天</div>'+
+    statBlock(w,{denom:7, saveGoal:s.monthlySavings/30*7})+
+    '<div class="d-sec">近 7 天趋势</div>'+trendRows(wk)+
+    '<div class="d-sec">本周 vs 上周</div>'+weeklyCompareBlock(ph)+
+  '</div>';
+  /* —— 月报 —— */
+  html+='<div class="card"><h2>'+si('chart')+'月度报表</h2>'+
+    '<div class="sub">'+t.slice(0,7)+' 至今（'+mElapsed+' 天）· 有记录 '+m.days+' 天</div>'+
+    statBlock(m,{denom:mElapsed, saveGoal:s.monthlySavings})+
+    '<div class="field" style="margin-top:14px"><label>月度储蓄目标进度</label>'+
+    '<div class="bar"><i style="width:'+Math.min(100,monthlySavePct())+'%"></i></div>'+
+    '<div class="water-stat"><span>¥'+monthSave().toFixed(0)+'</span><span>目标 ¥'+s.monthlySavings+'</span></div></div>'+
+  '</div>';
+  /* —— 皮肤趋势 —— */
+  html+='<div class="card"><h2>'+si('skin')+' 皮肤状态趋势（近 7 天）</h2>'+skinTrend(wk)+'</div>';
   $('#p-report').innerHTML=html;
 }
 function lastNDays(n){ const out=[]; const d=new Date();
@@ -1950,6 +2511,8 @@ function lastNDays(n){ const out=[]; const d=new Date();
   return out; }
 function agg(days){
   let fit=0,sleep=0,sn=0,exp=0,save=0,en=0,sk=0,diet=0,dk=0,dkn=0,dm=0,dmn=0;
+  /* v2.5 新增口径：蛋白 / 体重 / 腰围 / 饮水 */
+  let dp=0,dpn=0,wt=0,wtn=0,wa=0,wan=0,wc=0,wcn=0;
   days.forEach(k=>{ const d=store.days[k]; if(!d)return;
     if(d.fit_done)fit++; const h=sleepHours(d); if(h>0){sleep+=h;sn++;}
     exp+=(d.expenses||[]).reduce((a,e)=>a+(+e.amt||0),0); save+=(+d.save_today||0);
@@ -1957,60 +2520,197 @@ function agg(days){
     /* 减脂模块统计（2026-09-27 接入） */
     if(d.diet_done)diet++;
     if(d.diet_kcal!=null&&d.diet_kcal!==''){ dk+=+d.diet_kcal; dkn++; }
-    if(d.diet_min!=null&&d.diet_min!==''){ dm+=+d.diet_min; dmn++; } });
+    if(d.diet_min!=null&&d.diet_min!==''){ dm+=+d.diet_min; dmn++; }
+    /* v2.5 新增 */
+    if(d.diet_p!=null&&d.diet_p!==''){ dp+=+d.diet_p; dpn++; }
+    if(d.weight!=null&&d.weight!==''){ wt+=+d.weight; wtn++; }
+    if(d.diet_waist!=null&&d.diet_waist!==''){ wa+=+d.diet_waist; wan++; }
+    if(d.water_ml!=null&&d.water_ml!==''){ wc+=+d.water_ml; wcn++; } });
   return {days:days.filter(k=>store.days[k]).length, fit, sleep:sn?(sleep/sn).toFixed(1):'—', exp, save, en, sk,
-    diet, dkcal:dkn?Math.round(dk/dkn):'—', dmin:dmn?Math.round(dm/dmn):'—'};
+    diet, dkcal:dkn?Math.round(dk/dkn):'—', dmin:dmn?Math.round(dm/dmn):'—',
+    /* v2.5 新增返回值 */
+    dp:dpn?Math.round(dp/dpn):'—', dkcalSum:Math.round(dk), dminSum:Math.round(dm),
+    weight:wtn?(wt/wtn).toFixed(1):'—', waist:wan?(wa/wan).toFixed(1):'—',
+    water:wcn?Math.round(wc/wcn):'—'};
 }
-function statBlock(a){
-  return '<div class="stat-grid">'+
-    '<div class="stat"><div class="v">'+a.fit+'</div><div class="l">训练天数</div></div>'+
-    '<div class="stat"><div class="v">'+a.diet+'</div><div class="l">减脂达标天</div></div>'+
-    '<div class="stat"><div class="v">'+a.dkcal+'</div><div class="l">日均摄入 kcal</div></div>'+
-    '<div class="stat"><div class="v">'+a.dmin+'</div><div class="l">日均训练 min</div></div>'+
-    '<div class="stat"><div class="v">'+a.sleep+'</div><div class="l">平均睡眠(h)</div></div>'+
-    '<div class="stat"><div class="v">¥'+a.exp.toFixed(0)+'</div><div class="l">总支出</div></div>'+
-    '<div class="stat"><div class="v">¥'+a.save.toFixed(0)+'</div><div class="l">总储蓄</div></div>'+
-    '<div class="stat"><div class="v">'+a.en+'</div><div class="l">英语学习天</div></div>'+
-    '<div class="stat"><div class="v">'+a.sk+'</div><div class="l">完整护肤天</div></div>'+
-  '</div>';
+function statBlock(a, o){
+  o=o||{};
+  const P=DIET_PLAN, s=store.settings, ph=dietPhase();
+  const dn=o.denom||a.days||1;
+  const perWeek=function(v){ return dn? v/dn*7 : 0; };
+
+  /* 单元格：v 主数值 / u 单位后缀 / l 名称 / ref 参照行 / st 状态(ok|warn|bad) */
+  const cell=function(v,u,l,ref,st){
+    return '<div class="stat'+(st?' st-'+st:'')+'">'+
+      '<div class="v">'+v+(u?'<small>'+u+'</small>':'')+'</div>'+
+      '<div class="l">'+l+'</div>'+
+      (ref?'<div class="r '+(st||'')+'">'+ref+'</div>':'')+'</div>';
+  };
+  const grp=function(title, sum, body){
+    return '<div class="stat-grp"><div class="gt">'+title+(sum?'<span class="gsum">'+sum+'</span>':'')+'</div>'+
+      '<div class="stat-grid">'+body+'</div></div>';
+  };
+  /* 把「实际 / 应做」折算成每周次数，与计划比较 */
+  const clamp=function(x,lo,hi){ return Math.max(lo,Math.min(hi,x)); };
+
+  /* —— 训练 —— */
+  const wkFit=perWeek(a.fit), planDays=P.train.perWeek;
+  const fitSt= wkFit>=planDays-0.3 ? 'ok' : (wkFit>=planDays-1.6 ? 'warn' : 'bad');
+  const wkMin=perWeek(a.dminSum), planMin=P.train.weeklyMin;
+  const minSt= wkMin>=planMin*0.9 ? 'ok' : (wkMin>=planMin*0.6 ? 'warn' : 'bad');
+  const wkDiet=perWeek(a.diet);
+  const dietSt= wkDiet>=6 ? 'ok' : (wkDiet>=4 ? 'warn' : 'bad');
+  let g1=cell(a.fit, '/'+dn, '训练天数', '周均 '+wkFit.toFixed(1)+' / 计划 '+planDays+' 天', fitSt)+
+         cell(a.dminSum, ' min', '训练总时长', '周均 '+Math.round(wkMin)+' / 计划 '+planMin+' min', minSt)+
+         cell(a.diet, '/'+dn, '减脂达标天', '周均 '+wkDiet.toFixed(1)+' / 建议 7 天', dietSt);
+
+  /* —— 饮食与身体 —— */
+  const kc=a.dkcal;
+  let kcSt='', kcRef='本周无摄入记录';
+  if(kc!=='—'){
+    const gap=kc-ph.kcal, rel=Math.abs(gap)/ph.kcal;
+    if(kc<P.floor){ kcSt='bad';  kcRef='⚠ 低于安全下限 '+P.floor; }
+    else if(rel<=0.1){ kcSt='ok'; kcRef='在目标 ±10% 内（'+ph.name+'）'; }
+    else if(kc>P.tdee){ kcSt='bad'; kcRef='⚠ 已越过维持线 '+P.tdee; }
+    else if(gap>0){ kcSt='warn'; kcRef='超目标 '+(gap>0?'+':'')+Math.round(gap)+'，仍有缺口'; }
+    else { kcSt='warn'; kcRef='低于目标 '+Math.round(Math.abs(gap))+' kcal'; }
+  }
+  const pr=a.dp, prSt=(pr==='—')?'':(pr>=P.macro.p*0.9?'ok':(pr>=P.macro.p*0.75?'warn':'bad'));
+  const prRef=(pr==='—')?'本周无蛋白记录':'目标 '+P.macro.p+' g／日';
+
+  const latestW=(function(){
+    const ks=Object.keys(store.days).filter(function(k){ const d=store.days[k]; return d&&d.weight!=null&&d.weight!==''; }).sort();
+    return ks.length? +store.days[ks[ks.length-1]].weight : null;
+  })();
+  const tgt=+(s.dietTargetJin||150);
+  let wtSt='', wtRef='还没有体重记录';
+  if(latestW!=null){
+    const left=latestW-tgt;
+    if(left<=0){ wtSt='ok'; wtRef='已达成目标 ✓'; }
+    else { const start=+(s.dietStartJin||latestW); const prog=start>tgt? (start-latestW)/(start-tgt) : 0;
+      wtSt= prog>=0.5?'ok':(prog>0?'warn':'bad');
+      wtRef='距目标 '+left.toFixed(1)+' 斤（进度 '+Math.round(clamp(prog,0,1)*100)+'%）'; }
+  }
+  let g2=cell(kc,' kcal','日均摄入',kcRef,kcSt)+
+         cell(pr,' g','日均蛋白',prRef,prSt)+
+         cell(a.weight==='—'?'—':a.weight,' 斤','平均体重',a.weight==='—'?'本周无记录':'最新 '+(latestW==null?'—':latestW.toFixed(1))+' 斤', '');
+
+  /* —— 日常习惯 —— */
+  const slT=sleepTargetH();
+  const sl=a.sleep;
+  const slSt=(sl==='—')?'':(+sl>=slT-0.3?'ok':(+sl>=slT-1?'warn':'bad'));
+  const wkSk=perWeek(a.sk), wkEn=perWeek(a.en);
+  const skSt= wkSk>=6.5?'ok':(wkSk>=4?'warn':'bad');
+  const enSt= wkEn>=6.5?'ok':(wkEn>=4?'warn':'bad');
+  let g3=cell(sl,' h','平均睡眠', sl==='—'?'本周无记录':'目标 '+slT.toFixed(1)+' h', slSt)+
+         cell(a.sk,'/'+dn,'完整护肤天','周均 '+wkSk.toFixed(1)+' / 建议 7 天', skSt)+
+         cell(a.en,'/'+dn,'英语学习天','周均 '+wkEn.toFixed(1)+' / 建议 7 天', enSt);
+
+  /* —— 财务 —— */
+  const saveGoal=o.saveGoal;
+  let saveSt='', saveRef='本周无储蓄记录';
+  if(saveGoal){
+    const ratio=a.save/saveGoal;
+    saveSt= ratio>=1?'ok':(ratio>=0.6?'warn':'bad');
+    saveRef='目标 ¥'+Math.round(saveGoal)+'（完成 '+Math.round(clamp(ratio,0,9.99)*100)+'%）';
+  }
+  let g4=cell('¥'+Math.round(a.exp),'','总支出','日均 ¥'+Math.round(a.exp/dn)+' / 天','')+
+         cell('¥'+Math.round(a.save),'','总储蓄',saveRef,saveSt);
+
+  return grp('训练执行', '口径：折算为每周', g1)+
+         grp('饮食与身体', ph.name+' '+ph.kcal+' kcal', g2)+
+         grp('日常习惯', '分母 '+dn+' 天', g3)+
+         grp('财务', '', g4);
 }
 function skinTrend(days){
-  const map={明显:4,略退:3,稳定:2,加重:1};
-  const series=days.filter(k=>store.days[k]&&store.days[k].sk_acne).map(k=>({k, v:map[store.days[k].sk_acne]||0}));
-  if(!series.length) return '<div class="empty">'+si('skin')+'暂无皮肤状态记录</div>';
+  /* 语义修正（v2.5）：
+     字段 sk_acne 的四个选项，按「从差到好」为 加重 < 明显 < 稳定 < 略退，
+     即「略退＝痘印正在消退」最好、「加重」最差。
+     旧版 map 把「明显」记作 4（当成最好），与图下文案「越高越好」自相矛盾，
+     会把「痘印明显」画成最高柱 —— 属于误导性呈现，此处修正。 */
+  const map={略退:4, 稳定:3, 明显:2, 加重:1};
+  const label=['','加重','明显','稳定','略退'];
+  const col=['','#d9534f','#e0932f','#6a7fd6','#4f9d69'];
+  const series=days.filter(k=>store.days[k]&&store.days[k].sk_acne)
+    .map(k=>({k, v:map[store.days[k].sk_acne]||0}));
+  if(!series.length) return '<div class="empty">'+si('skin')+'暂无皮肤状态记录，去「护肤」页打卡后这里会生成趋势</div>';
   const max=4;
-  return '<div style="display:flex;align-items:flex-end;gap:5px;height:90px;padding-top:8px">'+series.map(s=>'<div style="flex:1;text-align:center"><div style="height:'+(s.v/max*70)+'px;background:linear-gradient(180deg,#7ab6ff,#3b7dd8);border-radius:4px 4px 0 0;margin:0 auto;width:60%"></div><div style="font-size:9px;color:var(--muted);margin-top:3px">'+s.k.slice(5)+'</div></div>').join('')+'</div><div class="muted" style="margin-top:4px">柱高代表痘印状态：加重1 → 明显2 → 稳定3 → 略退4（越高越好）</div>';
+  let h='<div style="display:flex;align-items:flex-end;gap:5px;height:98px;padding-top:8px">';
+  series.forEach(s=>{
+    const v=Math.max(1,s.v);
+    h+='<div style="flex:1;text-align:center">'+
+      '<div style="height:'+(v/max*70).toFixed(1)+'px;background:'+col[v]+';opacity:.85;border-radius:4px 4px 0 0;margin:0 auto;width:56%"></div>'+
+      '<div style="font-size:9px;color:var(--muted);margin-top:3px">'+s.k.slice(5)+'</div>'+
+      '<div style="font-size:9px;font-weight:800;color:'+col[v]+'">'+label[v]+'</div>'+
+    '</div>';
+  });
+  h+='</div>';
+  h+='<div class="d-lgd" style="margin-top:9px">'+
+       '<span><i class="dot" style="background:#4f9d69"></i>略退（4）</span>'+
+       '<span><i class="dot" style="background:#6a7fd6"></i>稳定（3）</span>'+
+       '<span><i class="dot" style="background:#e0932f"></i>明显（2）</span>'+
+       '<span><i class="dot" style="background:#d9534f"></i>加重（1）</span>'+
+     '</div>';
+  h+='<div class="d-why">痘印是<b>四档定性</b>记录，不是连续量，柱高只表示档位：'+
+     '<b>加重 &lt; 明显 &lt; 稳定 &lt; 略退</b>（越高＝痘印越轻）。仅作趋势参考，不替代皮肤科诊断。</div>';
+  return h;
 }
 
 /* ============ 今日 Todo 清单 ============ */
 function renderTodo(){
   const list=store.todos||(store.todos=[]);
   const left=list.filter(t=>!t.done).length;
+  const doneN=list.length-left;
+  const pct=list.length? Math.round(doneN/list.length*100) : 0;
   let html='<div class="card"><h2>'+si('list')+'今日 Todo 清单'+helpBtn('todo')+'</h2>'+
-    '<div class="sub">'+(left>0?('还有 '+left+' 项待完成，加油！'):'今日清单已清空，给自己鼓个掌 👏')+'</div>'+
-    '<div class="todo-input"><input type="text" id="todoInp" placeholder="添加今天的待办，回车即可" onkeydown="if(event.key===\'Enter\')addTodo()">'+
-    '<button class="btn sm" onclick="addTodo()">'+si('plus')+' 添加</button></div>'+
-    '<div id="todoList">'+(list.length?list.map(todoItem).join(''):'<div class="empty">'+si('list')+'还没有待办，把今天想做的事写下来吧</div>')+'</div></div>';
+    '<div class="sub">'+(list.length
+      ? (left>0? '还有 <b>'+left+'</b> 项待完成，加油！' : '今日清单已清空，给自己鼓个掌 👏')
+      : '把今天想做的事写下来，一件一件划掉')+'</div>'+
+    /* v2.5：补上进度条（原来只说「还有几项」，看不出整体推进到哪了） */
+    (list.length? '<div class="td-prog"><div class="bar"><i style="width:'+pct+'%"></i></div>'+
+      '<span class="tp-t">'+doneN+'/'+list.length+' · '+pct+'%</span></div>' : '')+
+    '<div class="todo-input" style="margin-top:11px"><input type="text" id="todoInp" placeholder="添加今天的待办，回车即可" onkeydown="if(event.key===\'Enter\')addTodo()">'+
+    '<button class="btn sm" onclick="addTodo()">'+si('plus')+' 添加</button></div>';
+  if(!list.length){
+    html+='<div class="empty">'+si('list')+'还没有待办，把今天想做的事写下来吧</div>';
+  }else{
+    /* v2.5：待完成 / 已完成 分组（已完成默认折叠）
+       注意：索引仍用原始下标，否则勾选/删除会错位到别的条目上。 */
+    if(left){
+      html+='<div class="td-group"><div class="tg-h" onclick="toggleTodoGroup(this)">'+
+        '<span class="tg-c">▾</span>待完成<span class="tg-n">'+left+' 项</span></div><div class="tg-b">'+
+        list.map((t,i)=>t.done? '' : todoItem(t,i)).join('')+'</div></div>';
+    }
+    if(doneN){
+      html+='<div class="td-group fold"><div class="tg-h" onclick="toggleTodoGroup(this)">'+
+        '<span class="tg-c">▾</span>已完成<span class="tg-n">'+doneN+' 项</span></div><div class="tg-b">'+
+        list.map((t,i)=>t.done? todoItem(t,i) : '').join('')+'</div></div>';
+    }
+  }
+  html+='</div>';
   const p=$('#p-todo'); p.innerHTML=html;
-  bindTodo(p);
   if(left===0 && list.length>0){ showTodoReward(); }
 }
 function todoItem(t,i){
+  /* v2.5：显示添加时间（仅对新记录生效，老数据没有 at 字段则不显示） */
+  const at=t.at? '<span style="display:block;font-size:10px;color:var(--muted);margin-top:2px">'+esc(String(t.at).slice(5))+' 添加</span>' : '';
   return '<div class="todo-item '+(t.done?'done':'')+'" data-i="'+i+'">'+
     '<div class="box" onclick="toggleTodo('+i+')"></div>'+
-    '<div class="tx">'+esc(t.text)+'</div>'+
+    '<div class="tx">'+esc(t.text)+at+'</div>'+
     '<div class="acts">'+
       '<button class="btn icon sm" onclick="editTodo('+i+')">'+si('edit')+'</button>'+
       '<button class="btn icon sm danger" onclick="delTodo('+i+')">'+si('trash')+'</button>'+
     '</div></div>';
 }
-function bindTodo(root){
-  root.querySelectorAll('.todo-item .tx[contenteditable]').forEach(()=>{});
+/* v2.5：分组折叠开关（原 bindTodo 是个空函数，从未起过作用，已移除） */
+function toggleTodoGroup(el){
+  const g=el&&el.parentNode;
+  if(g) g.classList.toggle('fold');
 }
 function addTodo(){
   const inp=$('#todoInp'); const v=inp.value.trim(); if(!v){ toast('先写点什么吧'); return; }
   if(!store.todos) store.todos=[];
-  store.todos.push({text:v,done:false}); save(); inp.value=''; renderTodo();
+  store.todos.push({text:v,done:false,at:nowStr()}); save(); inp.value=''; renderTodo();
 }
 function toggleTodo(i){ if(!store.todos[i])return; store.todos[i].done=!store.todos[i].done; save(); renderTodo(); }
 function delTodo(i){ store.todos.splice(i,1); save(); renderTodo(); }
@@ -2038,8 +2738,20 @@ function showTodoReward(){
 }
 
 /* ============ 收集箱（Inbox） ============ */
+/* v2.5：收集箱筛选状态（'' = 全部） */
+let _ibFilter='';
+function ibFilter(k){ _ibFilter=k||''; renderInbox(); if(_ibFilter) toast('已筛选：'+_ibFilter); }
+/* 滞留天数：收集箱是暂存区不是归档区，放太久的要主动提醒处理 */
+function ibStaleDays(it){
+  const t=String(it&&it.time||'').slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(t)) return 0;
+  return Math.floor((new Date(todayStr())-new Date(t))/86400000);
+}
 function renderInbox(){
   const list=store.inbox||(store.inbox=[]);
+  const tagOf=it=>it.tag||'未分类';
+  const counts={};
+  list.forEach(it=>{ const k=tagOf(it); counts[k]=(counts[k]||0)+1; });
   let html='<div class="card"><h2>'+si('inbox')+'收集箱'+helpBtn('inbox')+'</h2>'+
     '<div class="sub">任何灵感、待办、链接、想买的东西，先丢进来，再慢慢处理</div>'+
     '<div class="quickadd"><input type="text" id="ibTitle" placeholder="标题 / 一句话">'+
@@ -2050,24 +2762,48 @@ function renderInbox(){
       '<button class="chip" onclick="ibQuick(\'💡 灵感想法\')">💡 灵感</button>'+
       '<button class="chip" onclick="ibQuick(\'📌 稍后处理\')">📌 稍后</button>'+
       '<button class="chip" onclick="ibQuick(\'🔗 链接收藏\')">🔗 链接</button>'+
-    '</div></div>';
-  html+='<div id="inboxList">';
+    '</div>';
+  /* 标签统计与筛选 */
   if(list.length){
-    list.forEach((it,i)=>{
+    const order=['想买','灵感','稍后','链接','未分类'];
+    const keys=order.filter(k=>counts[k]);
+    html+='<div class="ib-stats">'+
+      '<span class="ib-t'+(_ibFilter===''?' on':'')+'" onclick="ibFilter(\'\')">全部 <b>'+list.length+'</b></span>'+
+      keys.map(k=>'<span class="ib-t'+(_ibFilter===k?' on':'')+'" onclick="ibFilter(\''+k+'\')">'+k+' <b>'+counts[k]+'</b></span>').join('')+
+    '</div>';
+    /* 滞留提醒 */
+    const stale=list.filter(it=>ibStaleDays(it)>=7);
+    if(stale.length){
+      const oldest=Math.max.apply(null, stale.map(ibStaleDays));
+      html+='<div class="ib-stale" style="margin-top:10px">📦 有 <b>'+stale.length+'</b> 项已放置超过 7 天（最久 <b>'+oldest+' 天</b>）。'+
+        '收集箱是<b>暂存区</b>，不是归档区 —— 挑一项处理掉：转成今日待办、细化为目标，或者直接删掉。</div>';
+    }
+  }
+  html+='</div>';
+  /* 列表（保留原始下标，保证细化/转待办/删除不会错位） */
+  const rows=list.map((it,i)=>({it,i})).filter(x=>!_ibFilter||tagOf(x.it)===_ibFilter);
+  html+='<div id="inboxList">';
+  if(rows.length){
+    rows.forEach(x=>{ const it=x.it, i=x.i;
+      const sd=ibStaleDays(it);
       html+='<div class="collect-item">'+
-        '<div class="body"><h4>'+esc(it.title)+(it.tag?' <span class="pill yellow">'+esc(it.tag)+'</span>':'')+'</h4>'+
+        '<div class="body"><h4>'+esc(it.title)+(it.tag?' <span class="pill yellow">'+esc(it.tag)+'</span>':'')+
+          (sd>=7?' <span class="pill gray">放置 '+sd+' 天</span>':'')+'</h4>'+
         (it.body?'<p>'+esc(it.body)+'</p>':'')+
-        '<div class="meta">'+it.time+'</div></div>'+
+        '<div class="meta">'+esc(it.time||'')+'</div></div>'+
         '<div class="acts">'+
           '<button class="btn icon sm ghost" onclick="refineInbox('+i+')" title="细化为目标树">'+si('target')+'</button>'+
           '<button class="btn icon sm ghost" onclick="moveInboxToTodo('+i+')" title="转今日待办">'+si('list')+'</button>'+
           '<button class="btn icon sm danger" onclick="delInbox('+i+')" title="删除">'+si('trash')+'</button>'+
         '</div></div>';
     });
+  } else if(list.length){
+    html+='<div class="empty">'+si('inbox')+'「'+_ibFilter+'」分类下暂无内容，点上方「全部」查看其它</div>';
   } else {
     html+='<div class="empty">'+si('inbox')+'收集箱是空的，把脑子里的杂事都倒进来吧</div>';
   }
   html+='</div>';
+  /* 目标细化 */
   html+='<div class="card" style="margin-top:16px"><h2>'+si('target')+'目标细化</h2>'+
     '<div class="sub">输入一个目标，一键拆成「阶段 → 任务」目标树；随时继续追问、动态调整，全程不离开本页</div>'+
     '<div class="goal-inp"><input type="text" id="goalInp" placeholder="例如：三个月减重 10 斤 / 考过英语四级">'+
@@ -2900,6 +3636,31 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v2.5',date:'2026-09-27',items:[
+      '报表页重构：由「9 个裸数字平铺、零趋势图」改为四组统计（训练 / 饮食与身体 / 日常习惯 / 财务），每个指标都带分母或目标参照，并用颜色标出达标・需注意・不达标——原版「训练天数 5」看不出是 7 天里的 5 天，也没有任何可比基准',
+      '报表新增「近 7 天趋势」迷你折线（训练时长 / 摄入热量 / 睡眠 / 支出），带橙色参照虚线；缺失值保留横轴占位不连线，曲线不会因漏打卡而「假装下降」',
+      '报表新增「本周 vs 上周」跨模块环比：训练时长 / 训练天数 / 打卡达标 / 日均摄入 / 平均体重 / 总储蓄 / 总支出，画在同一条刻度上比长短，并自动判断变化方向是否向好',
+      '修正皮肤趋势图的语义错误：原代码把「痘印明显」记为最高档 4（当成最好），与图下「越高越好」的说明自相矛盾，会把最差状态画成最高柱；现按 加重＜明显＜稳定＜略退 正确排序，并补上四档图例与说明',
+      '复盘页新增「今日客观数据」速览：完成度 / 训练 / 摄入 / 蛋白质 / 睡眠 / 护肤 六格全部取自真实打卡，让主观打分有客观对照基线（原版是 6 个空文本框，主观与客观完全脱节）',
+      '复盘页新增「近 14 天自评趋势」折线，打星后即时刷新；连续低分时提示优先调小目标颗粒度，而不是加压',
+      '月度自动汇总由 2 类数据扩展到 6 类：新增减脂（体重・腰围变化、日均摄入与蛋白）、完整护肤与英语天数；原版把这些明明有记录的数据留成空白让用户手填',
+      '总览「晨间推送」改为实时反映今日完成状态：完成后自动打勾变绿，并补上此前遗漏的减脂项；与「成长·渡劫」页同源，两边永远一致（原版是写死的四个标签，练完了仍显示「健身训练」）',
+      '目标总览新增完成计数 x/5；未完成项改用橙色，与已完成的蓝色形成对比',
+      '新增「基准需重算」主动提醒：累计减重每满 3kg 触发一次，给出具体应下调的 kcal 数——原方案多处文案承诺「每降 3kg 重算 TDEE」，但此前没有任何机制会真的提醒',
+      '今日 Todo 新增完成进度条与「待完成 / 已完成」分组（已完成默认折叠、可展开），新记录带添加时间；索引映射经专门验证，分组后勾选与删除不会错位',
+      '收集箱新增标签统计与筛选（全部 / 想买 / 灵感 / 稍后 / 链接 / 未分类），以及滞留提醒：放置超过 7 天的项主动提示处理，避免变成只进不出的垃圾场',
+      '修正「关于渡」文案：原写「身材、皮肤、英语、理财四重河流」，补上 v2.3 新增的减脂，改为五重',
+      '清理死代码：bindTodo 是空函数、从未生效，已替换为真正可用的分组折叠开关']},
+    {ver:'v2.4',date:'2026-09-27',items:[
+      '减脂模块重构为四层分组，信息层级由「平铺 7 张卡」改为「今日执行 → 趋势洞察 → 方案结构 → 方案基准（可折叠）」',
+      '新增「今日摄入同轴定位图」：把今日摄入与安全下限 1478 / 方案目标 2360 / 维持线 2865 放在同一条刻度上对比，一眼看出位置',
+      '热量判定改为区间语义：低于下限（红）/ 偏少 / 接近目标（蓝）/ 超目标但仍有缺口（橙）/ 越过维持线，不再用「越多越绿」的错误暗示',
+      '体重趋势图升级为多图层：新增 7 日移动平均线（抗噪主信号）+ Y 轴刻度值 + 图例；原始每日线保留为浅色，修正原先「文案说看周均值、图里却没有均线」的不一致',
+      '速度算法由「首末差」改为最小二乘线性回归斜率 × 7，单日异常不再带偏整条趋势',
+      '新增「周环比」卡片：本周 vs 上周对比训练时长 / 训练天数 / 方案达标 / 日均摄入 / 平均体重，并标注增减方向是否向好',
+      '新增腰围字段（原文档建议测量但打卡表单缺失），补齐「说与做不一致」；腰围警戒线 90cm 自动标色',
+      '训练时长并入今日达成环（共三环），对齐当日训练计划而非固定值',
+      '新增训练日蛋白不足告警；方案基准、宏量明细、餐次明细、心率区间收进折叠区，减少日常噪音']},
     {ver:'v2.3',date:'2026-09-27',items:[
       '新增「减脂」主模块：目标主线由四条扩展为五条（健身/减脂/英语/护肤/理财），雷达图同步为五维',
       '核心数据看板：体重趋势面积图（含目标线与周均速度）、热量与蛋白达成环、宏量配比堆叠条、餐次占比环形图、本周五练执行格、近 7 天趋势柱状',
@@ -2953,7 +3714,17 @@ function renderMe(){
       '<div class="field" style="flex:1">'+numField('dietTargetJin','目标体重',null,s.dietTargetJin,'斤')+'</div>'+
     '</div>'+
     '<div class="field"><label>方案起始日</label><input type="date" class="txt" data-k="dietStart" value="'+esc(s.dietStart||todayStr())+'"></div>'+
-    '<p class="muted" style="font-size:12px;margin-top:6px">按 12 周减 7–10kg（约 14–20 斤）的合理速度设置；体重每降 3kg 建议重新校核一次热量基准。</p></div>';
+    '<p class="muted" style="font-size:12px;margin-top:6px">按 12 周减 7–10kg（约 14–20 斤）的合理速度设置；体重每降 3kg 建议重新校核一次热量基准。</p>'+
+    (function(){
+      const l=dietLostKg(); if(!l) return '';
+      const st=dietRecalcStep();
+      if(st>0) return '<div class="d-warn" style="margin-top:10px">⚖️ <b>基准需重算</b>：已减少 <b>'+l.kg.toFixed(1)+' kg</b>（'+
+        l.start+' → '+l.latest+' 斤）。体重每降 3kg，每日总消耗约降 <b>60–100 kcal</b>：'+
+        '建议把目标下调约 <span class="d-outline">'+(st*80)+' kcal</span>，或上调训练量，保持缺口在 15–20%。'+
+        '校核完成后，把「起始体重」更新为 '+l.latest+' 斤即可重新累计。</div>';
+      return '<p class="muted" style="font-size:12px;margin-top:6px">当前累计变化 <b>'+l.kg.toFixed(1)+' kg</b>'+
+        (l.kg>=0? '，再降 <b>'+(3-l.kg).toFixed(1)+' kg</b> 就需要重新校核基准。' : '（较起始上升），先回到执行度上。')+'</p>';
+    })()+'</div>';
   html+='<div class="card"><h2>'+si('doc')+'数据管理</h2><div class="flex wrap" style="gap:8px">'+
     '<button class="btn ghost sm" onclick="exportData()">'+si('arrow')+' 导出备份(JSON)</button>'+
     '<button class="btn ghost sm" onclick="importData()">导入备份</button>'+
@@ -2966,7 +3737,7 @@ function renderMe(){
     '<textarea id="migrateText" placeholder="点“复制数据为文本”生成一串字符；或在手机端把电脑生成的文本粘贴到这里，再点“从文本恢复”。" style="width:100%;height:96px;margin-top:8px;font-size:12px;font-family:monospace"></textarea>'+
     '<p class="muted" style="font-size:11px;line-height:1.6;margin-top:6px">提示：数据只存在本机浏览器，换设备需迁移。复制后在微信发给自己，手机端打开本页粘贴即可恢复全部记录。</p></div>';
   html+='<div class="card"><h2>'+si('heart')+'关于「渡」</h2>'+
-    '<p class="muted" style="font-size:13px;line-height:1.7">渡，是自我的蜕变之舟。以每日固定习惯为桨，以成长灵感为风，以复盘为舵，稳步穿越身材、皮肤、英语、理财四重河流，抵达更好的自己。</p>'+
+    '<p class="muted" style="font-size:13px;line-height:1.7">渡，是自我的蜕变之舟。以每日固定习惯为桨，以成长灵感为风，以复盘为舵，稳步穿越健身、减脂、护肤、英语、理财五重河流，抵达更好的自己。</p>'+
     '<p style="font-size:13px;color:#6b4f2a;font-style:italic;margin-top:8px">“我不迁就，所以孤独。”——愿你在「渡」里，也敢不迁就自己的惰性。</p>'+
     '<p class="muted" style="font-size:12px">数据全部保存在本机浏览器，离线可用。灵感来自公开社区内容源，仅供学习参考。歌词仅作个人灵感，版权归薛之谦及词曲作者所有。</p></div>';
   const p=$('#p-me'); p.innerHTML=html;
