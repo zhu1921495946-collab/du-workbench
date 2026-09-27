@@ -480,6 +480,58 @@
   .quickbar{}
   .drawer{}
   /* 文字颜色已统一加深（--text/--muted），不再叠加白色描边以免发虚 */
+
+  /* ==================== 减脂模块视觉规范（2026-09-27 接入） ====================
+     关于「描边」：全站曾用白色描边强化文字，后因边缘被吃掉、看起来发虚而下线。
+     本模块沿用同一结论的反向解法 —— 描边一律用「同色系深色」而非白色，
+     配合 paint-order / -webkit-text-stroke，只让字形变重、不变灰。
+       .d-ink      关键数字：加粗 + 同色深描边（最强）
+       .d-outline  关键标签：加粗 + 外框描边胶囊（次强）
+       .dk         仅加粗（一般强调）
+     信息层级：d-ink(数值) > d-outline(标签) > dk(正文强调) > 常规 muted(辅助说明) */
+  .d-kpi{display:grid; grid-template-columns:repeat(2,1fr); gap:8px;}
+  .d-box{background:rgba(255,255,255,.55); border:1px solid var(--line); border-radius:12px; padding:10px 11px;}
+  .d-box .k{font-size:11px; color:var(--muted);}
+  .d-box .v{font-size:21px; line-height:1.25; font-weight:800; margin-top:2px; color:#123a6b;}
+  .d-box .t{font-size:11px; color:var(--muted); margin-top:2px; line-height:1.5;}
+  .d-ink{font-weight:800; color:#0f3568; -webkit-text-stroke:.7px rgba(15,53,104,.8);}
+  .d-outline{display:inline-block; font-weight:800; color:#0f3568; background:rgba(227,238,252,.8);
+    border:1.4px solid rgba(47,108,192,.55); border-radius:8px; padding:1px 8px; font-size:12px;}
+  .dk{font-weight:800; color:#123a6b;}
+  .d-sec{font-size:12px; font-weight:800; color:#123a6b; margin:14px 0 2px; letter-spacing:.4px;
+    display:flex; align-items:center; gap:6px;}
+  .d-sec:first-child{margin-top:0;}
+  .d-legend{display:flex; flex-wrap:wrap; gap:5px 12px; margin-top:8px;}
+  .d-li{display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--muted);}
+  .d-li i{width:9px; height:9px; border-radius:3px; flex:0 0 auto;}
+  .d-grid7{display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-top:8px;}
+  .d-day{border:1px solid var(--line); border-radius:10px; padding:6px 2px; text-align:center;
+    background:rgba(255,255,255,.5);}
+  .d-day .dw{font-size:10px; color:var(--muted);}
+  .d-day .ds{font-size:13px; margin-top:3px; font-weight:800; color:#8a97a6; line-height:1.2;}
+  .d-day .dm{font-size:9.5px; color:var(--muted); margin-top:1px;}
+  .d-day.on{background:var(--primary-soft); border-color:rgba(47,108,192,.5);}
+  .d-day.on .ds{color:var(--primary);}
+  .d-day.rest{opacity:.5;}
+  .d-stack{display:flex; height:26px; border-radius:8px; overflow:hidden; margin-top:8px;
+    box-shadow:inset 0 0 0 1px rgba(15,37,87,.06);}
+  .d-stack div{display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px;
+    font-weight:800; white-space:nowrap; overflow:hidden;}
+  .d-warn{background:var(--danger-soft); border-left:3px solid var(--danger); border-radius:9px;
+    padding:9px 11px; font-size:12.5px; color:#8f2f24; line-height:1.75;}
+  .d-ok{background:rgba(227,238,252,.72); border-left:3px solid var(--primary); border-radius:9px;
+    padding:9px 11px; font-size:12.5px; color:#123a6b; line-height:1.75;}
+  .d-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .d-tb{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:6px;}
+  .d-tb th,.d-tb td{border:1px solid var(--line); padding:6px 7px; text-align:left;}
+  .d-tb th{background:rgba(227,238,252,.75); color:#123a6b; font-weight:800; white-space:nowrap;}
+  .d-tb tbody tr:nth-child(even){background:rgba(255,255,255,.42);}
+  .d-tb td.n{font-weight:800; color:#0f3568; white-space:nowrap;}
+  @media (max-width:560px){
+    .d-box .v{font-size:19px;}
+    .d-grid7{gap:3px;}
+    .d-day .dm{display:none;}
+  }
 </style>
 </head>
 <body>
@@ -496,6 +548,7 @@
       <section class="panel active" id="p-overview"></section>
       <section class="panel" id="p-todo"></section>
       <section class="panel" id="p-fit"></section>
+      <section class="panel" id="p-diet"></section>
       <!-- 扩展点：体态矫正（posture）面板已于 2026-09-08 移除，
            恢复方法见脚本中 MODULE_GATES.posture 的说明第 2 步。 -->
       <section class="panel" id="p-english"></section>
@@ -529,6 +582,8 @@ function def(){
     settings:{
       name:'蜕变者', waterTarget:2000, cupSize:350, bedGoal:'23:30', wakeGoal:'07:00',
       monthlySavings:2000, skinBudget:300, bigWarn:200, notify:false, customRSS:[],
+      /* 减脂模块基准（2026-09-27 接入）：起始体重 / 目标体重（斤）+ 方案起始日 */
+      dietStartJin:170, dietTargetJin:150, dietStart:todayStr(),
       waterRemind:{enabled:true, slots:[
         {time:'08:30',note:'晨起一杯水，唤醒代谢',on:true},
         {time:'10:30',note:'上午补水，保持专注',on:true},
@@ -566,6 +621,10 @@ function ensureV3(s){
   ]}; ch=true; }
   if(!s.game||!s.game.history){ s.game={xp:0, alias:(s.game&&s.game.alias)||'渡尘客', level:(s.game&&s.game.level)||1, history:{}, bossXp:(s.game&&s.game.bossXp)||0, streak:0, justLeveled:false}; ch=true; }
   if(!s.goals){ s.goals=[]; ch=true; }
+  /* 减脂模块（2026-09-27 接入）缺失字段补齐：仅补设置，不动历史打卡数据 */
+  if(s.dietStartJin==null){ s.dietStartJin=170; ch=true; }
+  if(s.dietTargetJin==null){ s.dietTargetJin=150; ch=true; }
+  if(!s.dietStart){ s.dietStart=todayStr(); ch=true; }
   return ch;
 }
 function load(){
@@ -628,6 +687,8 @@ const ICONS={
   collapse:'<path d="M11 6l-6 6 6 6M19 6l-6 6 6 6"/>',
   expand:'<path d="M13 6l6 6-6 6M5 6l6 6-6 6"/>',
   bell:'<path d="M18 9a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7z"/><path d="M10.5 20a2 2 0 0 0 3 0"/>',
+  flame:'<path d="M12 22c4 0 7-2.8 7-6.6 0-4.6-4.1-6.6-3-11.4-2.7 1-4.4 3.4-4.4 5.6 0 1.5-1.1 1.9-1.8 1.1-.9-1-1-2.3-1-2.3-1.4 1.6-2.8 4-2.8 7 0 3.8 3 6.6 7 6.6z"/>',
+  scale:'<path d="M12 3v3M7 6h10l3 7a4 4 0 0 1-8 0zM3 6h4l3 7a4 4 0 0 1-8 0z"/><path d="M12 20h.01"/>',
   chev:'<path d="M6 9l6 6 6-6"/>'
 };
 function si(n,cls){ return '<svg class="ico '+(cls||'')+'" viewBox="0 0 24 24">'+(ICONS[n]||'')+'</svg>'; }
@@ -646,6 +707,7 @@ const NAV=[
   {tab:'overview', name:'今日', icon:'sun'},
   {tab:'todo', name:'清单', icon:'list'},
   {tab:'fit', name:'健身', icon:'run'},
+  {tab:'diet', name:'减脂', icon:'flame'},
   /* 扩展点：体态矫正（posture）导航项已移除，恢复方法见下方 MODULE_GATES.posture */
   {tab:'english', name:'英语', icon:'speak'},
   {tab:'skin', name:'护肤', icon:'skin'},
@@ -660,7 +722,7 @@ const NAV=[
   {tab:'updatelog', name:'更新', icon:'flag'},
   {tab:'me', name:'我的', icon:'gear'}
 ];
-const GOAL_TABS=['fit','english','skin','finance'];
+const GOAL_TABS=['fit','diet','english','skin','finance'];
 const TOOL_TABS=['todo','inbox','insp','ai','tips','growth','review','report','updatelog','me'];
 const BOTTOM=['overview','todo','inbox','me'];
 
@@ -812,6 +874,7 @@ function switchTab(name){
 function rerender(){
   ({overview:renderOverview, todo:renderTodo,
     fit:()=>renderGoalPage('fit'),
+    diet:()=>renderGoalPage('diet'),
     /* 扩展点：体态矫正恢复时在此补回 posture:()=>renderGoalPage('posture'), */
     english:()=>renderGoalPage('english'), skin:renderSkin, finance:()=>renderGoalPage('finance'),
     inbox:renderInbox, insp:renderInsp, ai:renderAI, tips:renderTips, growth:renderGrowth, review:renderReview,
@@ -871,6 +934,34 @@ const GOALS={
     },
     extra:function(d,s){ return renderDietCard(); },
     },
+  /* 减脂主模块（2026-09-27 接入）：数据基准见下方 DIET_PLAN，
+     图表中心见 renderDietBoard()，与「健身」模块共用 weight 字段（唯一数据源，避免两处体重打架）。
+     灵感频道复用 'fit'（减脂属健身大类，无需新建频道与数据源）。 */
+  diet:{name:'减脂',icon:'flame',channel:'fit',reviewKey:'diet_r',
+    reviewLabel:'减脂专项复盘', reviewHint:'热量缺口执行度 / 餐次占比是否守住 / 训练完成情况 / 体重趋势与平台期信号 → 下周方案调整方向',
+    quote:'丑八怪 能否别把灯打开 —— 薛之谦《丑八怪》',
+    checkin:[
+      {k:'diet_done',t:'完成今日减脂方案',h:'餐次占比守住 + 训练完成',type:'check'},
+      {k:'weight',t:'今日体重',unit:'斤',type:'num',ph:'晨起排便后空腹'},
+      {k:'diet_kcal',t:'摄入热量',unit:'kcal',type:'num',ph:'主减期 2360'},
+      {k:'diet_p',t:'蛋白质',unit:'g',type:'num',ph:'目标 185'},
+      {k:'diet_min',t:'训练时长',unit:'分钟',type:'num',ph:'方案 25–40'},
+      {k:'diet_mode',t:'训练模式',type:'sel',opts:['未训练','稳态燃脂','金字塔间歇','变速','低强度恢复','今日休息']},
+      {k:'diet_break',t:'破功项（如有）',ph:'如：加班点了炸鸡 / 多喝一杯奶茶',type:'text'},
+      {k:'diet_note',t:'身体与食欲反馈',ph:'饥饿感 / 精力 / 睡眠 / 训练体感',type:'text'}
+    ],
+    trend:function(){
+      const wk=lastNDays(7);
+      const trained=wk.filter(k=>store.days[k]&&+store.days[k].diet_min>0).length;
+      let h='<div class="muted" style="margin-bottom:6px">近 7 天训练时长（分钟）</div>'+trendBars(wk,'diet_min','#2f6cc0');
+      h+='<div class="flex wrap" style="gap:8px;margin-top:10px">'+
+        '<span class="pill blue">7 天均值 '+avg(wk,'diet_min')+' min</span>'+
+        '<span class="pill">训练 <b>'+trained+'</b>/7 天</span>'+
+        '<span class="pill green">方案达标 <b>'+count(wk,'diet_done')+'</b>/7 天</span></div>';
+      return h;
+    },
+    extra:function(d,s){ return renderDietBoard(); }
+  },
   /* 扩展点：体态矫正（posture）目标配置已移除，恢复字段见 MODULE_GATES.posture 说明第 3 步。
      注意：历史打卡数据 pos_check / pos_min / pos_wall / pos_walk 未删除，重新接入后可直接读取。 */
   english:{name:'英语口语',icon:'speak',channel:'english',reviewKey:'en_r',
@@ -955,7 +1046,7 @@ function sum(days,key){ if(key==='expenses'){ let s=0; days.forEach(k=>(store.da
 
 function goalDone(g,d){
   /* 扩展点：体态矫正恢复时补回 posture:()=>(+d.pos_min||0)>0 */
-  const m={fit:()=>d.fit_done, english:()=>d.en_speak, skin:()=>d.sk_am&&d.sk_pm, finance:()=>(+d.save_today||0)>0};
+  const m={fit:()=>d.fit_done, diet:()=>d.diet_done, english:()=>d.en_speak, skin:()=>d.sk_am&&d.sk_pm, finance:()=>(+d.save_today||0)>0};
   return m[g]? !!m[g]() : false;
 }
 
@@ -976,6 +1067,7 @@ function dailyQuests(){
   const d=day(); const s=store.settings;
   const qs=[
     {k:'fit', name:'健身训练', icon:'run', xp:30, done:!!d.fit_done},
+    {k:'diet', name:'减脂方案达标', icon:'flame', xp:30, done:!!d.diet_done},
     /* 扩展点：体态矫正恢复时补回 {k:'posture', name:'体态矫正', icon:'posture', xp:20, done:(+d.pos_min||0)>0} */
     {k:'skin', name:'早晚分区护肤', icon:'skin', xp:25, done:!!(d.sk_am&&d.sk_pm)},
     {k:'english', name:'英语口语', icon:'speak', xp:20, done:!!d.en_speak},
@@ -1010,6 +1102,7 @@ function toggleQuest(key){
   if(!prev) return;
   const d=day();
   if(key==='fit') d.fit_done=!d.fit_done;
+  else if(key==='diet') d.diet_done=!d.diet_done;
   /* 扩展点：体态矫正恢复时补回 else if(key==='posture') d.pos_min=d.pos_min>0?0:15; */
   else if(key==='skin'){ const on=!!(d.sk_am&&d.sk_pm); d.sk_am=!on; d.sk_pm=!on; }
   else if(key==='english') d.en_speak=!d.en_speak;
@@ -1065,15 +1158,16 @@ function growthHeaderHtml(){
     '<div class="lv-streak">🔥 连续修行 '+store.game.streak+' 天 · 累计 '+gameXp()+' 经验</div>';
 }
 function radarSvg(){
-  /* 扩展点：体态矫正恢复时在 boards 补回 'posture'、names 补回 '体态'（四维自动变回五维） */
-  const boards=['fit','english','skin','finance'];
+  /* 扩展点：体态矫正恢复时在 boards 补回 'posture'、names 补回 '体态'（维度数自动增加）。
+     现状：五维 = 健身 / 减脂 / 英语 / 护肤 / 理财（减脂于 2026-09-27 接入，占据原体态维度） */
+  const boards=['fit','diet','english','skin','finance'];
   const wk=lastNDays(7);
   const vals=boards.map(g=>{ let n=0,dn=0; wk.forEach(k=>{ const d=store.days[k]; if(d){ dn++; if(goalDone(g,d)) n++; } }); return dn?n/dn:0; });
   const cx=110, cy=110, R=80, N=boards.length;
   const pt=(i,rad)=>{ const a=-Math.PI/2 + i*2*Math.PI/N; return [cx+rad*Math.cos(a), cy+rad*Math.sin(a)]; };
   let grid=''; for(let g=1;g<=4;g++){ const rr=R*g/4; let p=''; for(let i=0;i<N;i++){ const x=pt(i,rr); p+=(i?' ':'')+x[0].toFixed(1)+','+x[1].toFixed(1); } grid+='<polygon points="'+p+'" fill="none" stroke="#e3e8ee" stroke-width="1"/>'; }
   let data=''; for(let i=0;i<N;i++){ const x=pt(i,R*vals[i]); data+=(i?' ':'')+x[0].toFixed(1)+','+x[1].toFixed(1); }
-  let labels=''; const names=['健身','英语','护肤','理财']; for(let i=0;i<N;i++){ const x=pt(i,R+18); labels+='<text x="'+x[0].toFixed(1)+'" y="'+(x[1]+4).toFixed(1)+'" text-anchor="middle" font-size="11" fill="#5f6b78">'+names[i]+'</text>'; }
+  let labels=''; const names=['健身','减脂','英语','护肤','理财']; for(let i=0;i<N;i++){ const x=pt(i,R+18); labels+='<text x="'+x[0].toFixed(1)+'" y="'+(x[1]+4).toFixed(1)+'" text-anchor="middle" font-size="11" fill="#5f6b78">'+names[i]+'</text>'; }
   return '<svg viewBox="0 0 220 220" width="100%" height="220">'+grid+
     '<polygon points="'+data+'" fill="rgba(24,95,165,.18)" stroke="#185FA5" stroke-width="2"/>'+
     vals.map((v,i)=>{ const x=pt(i,R*v); return '<circle cx="'+x[0].toFixed(1)+'" cy="'+x[1].toFixed(1)+'" r="3" fill="#185FA5"/>'; }).join('')+labels+'</svg>';
@@ -1137,7 +1231,7 @@ function renderOverview(){
     '<p class="muted" style="margin-top:9px">点一次 = 一杯 '+s.cupSize+' ml；500 ml 为大瓶/运动补水。</p></div>';
   html+='<div class="card"><h2>'+si('target')+'今日目标总览</h2><div class="sub">点击进入各目标详情，逐项细致打卡</div>';
   /* 扩展点：体态矫正恢复时在数组中补回 'posture' */
-  ['fit','english','skin','finance'].forEach(g=>{
+  ['fit','diet','english','skin','finance'].forEach(g=>{
     const G=GOALS[g]; const done=goalDone(g,d);
     html+='<div class="row" onclick="switchTab(\''+g+'\')"><label>'+si(G.icon)+G.name+'</label>'+
       '<span class="pill" style="background:'+(done?'var(--primary-soft)':'#eef1f4')+';color:'+(done?'var(--primary)':'#99a6b3')+'">'+(done?'已打卡':'待完成')+'</span></div>';
@@ -1151,47 +1245,327 @@ function renderOverview(){
 }
 
 /* ============ 目标详情页 ============ */
-/* ============ 专属减脂方案（用户真实数据） ============ */
+/* ============ 专属减脂方案（健身页入口卡） ============
+ * 2026-09-27 更新：完整方案已升级为独立「减脂」主模块（见 DIET_PLAN / renderDietBoard），
+ * 本卡只保留健身页上的核心基准摘要与入口，避免同一套数据在两处各写一份而打架。
+ * 已移除的旧基准（运动日 2486 / 休息日 1989 kcal、米饭30/肉40/菜15/油15 配比）：
+ *   因活动等级由轻度 1.375 修正为中度 1.55 而作废，旧数值记录于此备查，不再参与计算。 */
 const DIET={
-  profile:{sex:'男', h:178, wKg:85, wJin:170, age:24, restHr:65},
-  bmr:1950,
-  tdee:{ex:2925, rest:2340},
-  eat:{ex:2486, rest:1989},
-  hr:{low:137, high:163, avg:150},
-  ratio:{rice:0.30, meat:0.40, veg:0.15, oil:0.15},
-  kcal:{ ex:{rice:746, meat:994, veg:373, oil:373}, rest:{rice:597, meat:796, veg:298, oil:298} },
-  food:{rice:112, beef:120, pork:125, chicken:118, lamb:130},
-  gram:{ ex:{meat:830, veg:1500, rice:666, fat:41}, rest:{meat:660, veg:1200, rice:533, fat:33} }
+  profile:{sex:'男', h:178, wKg:85, wJin:170, age:24},
+  food:{rice:112, beef:120, pork:125, chicken:118, lamb:130}
 };
 function renderDietCard(){
-  const D=DIET, p=D.profile;
-  const row=(l,a,b)=>'<tr><td>'+l+'</td><td>'+a+'</td><td>'+b+'</td></tr>';
-  let h='<div class="card"><h2>'+si('run')+'减脂方案 · 你的专属数据</h2>'+
-    '<div class="sub">'+p.sex+' · '+p.h+'cm · '+p.wJin+'斤('+p.wKg+'kg) · '+p.age+'岁 · 静息心率 '+p.restHr+'</div>';
-  h+='<div class="strat-sec">'+si('chart')+'热量基准</div>'+
-     '<div class="flex wrap" style="gap:8px"><span class="pill">基础代谢 '+D.bmr+' kcal</span><span class="pill">运动日消耗 '+D.tdee.ex+'</span><span class="pill">休息日消耗 '+D.tdee.rest+'</span></div>'+
-     '<p class="muted" style="margin:8px 0 2px;font-size:13px;line-height:1.7">热量缺口控制在 <b>85%</b>：运动日吃 <b>'+D.eat.ex+' kcal</b>，休息日吃 <b>'+D.eat.rest+' kcal</b>。</p>'+
-     '<div class="strat-sec">'+si('heart')+'有氧燃脂心率</div>'+
-     '<p class="muted" style="font-size:13px;line-height:1.7;margin:0">区间 <b>'+D.hr.low+'–'+D.hr.high+' 次/分</b>（均值约 '+D.hr.avg+'）。爬楼机时把心率维持在此区间燃脂效率最高。</p>';
-  h+='<div class="strat-sec">'+si('target')+'宏量配比（米饭30% / 肉40% / 蔬菜15% / 油脂15%）</div>'+
-     '<table class="diet-tb"><thead><tr><th>营养素</th><th>运动日</th><th>休息日</th></tr></thead><tbody>'+
-       row('碳水（米饭）', D.kcal.ex.rice+' kcal', D.kcal.rest.rice+' kcal')+
-       row('蛋白质（肉类）', D.kcal.ex.meat+' kcal', D.kcal.rest.meat+' kcal')+
-       row('蔬菜', D.kcal.ex.veg+' kcal', D.kcal.rest.veg+' kcal')+
-       row('油脂', D.kcal.ex.oil+' kcal', D.kcal.rest.oil+' kcal')+
-     '</tbody></table>';
-  h+='<div class="strat-sec">'+si('coin')+'食物热量参考（每 100g）</div><div class="flex wrap" style="gap:6px">'+
-       Object.keys(D.food).map(k=>'<span class="pill">'+({rice:'米饭',beef:'牛肉',pork:'猪肉',chicken:'鸡肉',lamb:'羊肉'}[k])+' '+D.food[k]+'</span>').join('')+
-     '</div><p class="muted" style="margin-top:6px;font-size:12px">碳水与蛋白质按<b>熟重</b>，蔬菜按<b>生重</b>。</p>';
-  h+='<div class="strat-sec">'+si('check')+'每日实物重量目标</div>'+
-     '<table class="diet-tb"><thead><tr><th>项目</th><th>运动日</th><th>休息日</th></tr></thead><tbody>'+
-       row('肉类', D.gram.ex.meat+' g', D.gram.rest.meat+' g')+
-       row('蔬菜（生重）', D.gram.ex.veg+' g', D.gram.rest.veg+' g')+
-       row('米饭（熟重）', D.gram.ex.rice+' g', D.gram.rest.rice+' g')+
-       row('全天脂肪', D.gram.ex.fat+' g', D.gram.rest.fat+' g')+
-     '</tbody></table>';
-  h+='<p class="muted" style="margin-top:10px;font-size:12px">数据依据你的身高体重与活动系数测算，仅供参考；实际以体感与体重趋势为准，必要时微调。</p></div>';
+  const P=DIET_PLAN, ph=dietPhase(), p=DIET.profile;
+  const target=+(store.settings.dietTargetJin||150);
+  let h='<div class="card" style="border-left:4px solid '+P.col.p+'"><h2>'+si('flame')+'减脂方案 · 核心基准'+
+      '<span class="pill blue" style="margin-left:auto">'+ph.name+'</span></h2>'+
+    '<div class="sub">'+p.sex+' · '+p.h+'cm · '+p.wJin+'斤('+p.wKg+'kg) · '+p.age+'岁 · 目标 '+target+' 斤</div>';
+  h+='<div class="d-kpi">'+
+    '<div class="d-box"><div class="k">每日热量目标</div><div class="v d-ink">'+ph.kcal+'<span style="font-size:12px"> kcal</span></div>'+
+      '<div class="t">缺口 '+ph.def+' kcal · 占 TDEE '+Math.round(ph.def/P.tdee*100)+'%</div></div>'+
+    '<div class="d-box"><div class="k">蛋白质目标</div><div class="v d-ink">'+P.macro.p+'<span style="font-size:12px"> g</span></div>'+
+      '<div class="t">2.18 g/kg · 纯有氧方案的保肌主力</div></div>'+
+  '</div>';
+  h+='<div class="d-sec">'+si('clock')+'餐次占比</div>'+
+    '<div class="flex wrap" style="gap:6px">'+
+      P.meals.map(m=>'<span class="pill blue"><b>'+m.name+'</b> '+m.pct+'% · '+m.kcal+'</span>').join('')+
+    '</div>'+
+    '<p class="muted" style="margin:8px 0 0;font-size:13px;line-height:1.8">热量基准 <b>BMR '+P.bmr+'</b> · <b>TDEE '+P.tdee+'</b> · 安全下限 <span class="d-outline">'+P.floor+' kcal</span>（BMR×80%）。'+
+      '爬楼机燃脂心率 <b>'+P.hr.burn+' 次/分</b>，五练周总量 <b>175 分钟</b>。</p>';
+  h+='<div class="d-sec">'+si('coin')+'食物热量参考（每 100g）</div><div class="flex wrap" style="gap:6px">'+
+      Object.keys(DIET.food).map(k=>'<span class="pill">'+({rice:'米饭',beef:'牛肉',pork:'猪肉',chicken:'鸡肉',lamb:'羊肉'}[k])+' '+DIET.food[k]+'</span>').join('')+
+    '</div><p class="muted" style="margin-top:6px;font-size:12px">碳水与蛋白质按<b>熟重</b>，蔬菜按<b>生重</b>。</p>';
+  h+='<p class="muted" style="margin-top:10px;font-size:12px">完整方案（体重趋势图 / 热量与蛋白达成 / 餐次结构 / 五练执行 / 平台期排查）已升级为独立的「减脂」模块。</p>'+
+    '<button class="btn ghost sm" style="margin-top:8px" onclick="switchTab(\'diet\')">'+si('flame')+' 进入减脂模块</button></div>';
   return h;
+}
+/* ==================== 减脂模块 · 数据基准与图表中心（2026-09-27 接入） ====================
+ * 基准来源：2026-09-27 复核的科学减脂方案（v2 · 每周五练纯爬楼机版）
+ *   BMR 1848 / TDEE 2865（中度活动 1.55）/ 适应期 2560（缺口 300）/ 主减期 2360（缺口 500，占 17.5%）
+ *   安全下限 1478（BMR×80%）
+ *   蛋白 185g(2.18g/kg) · 脂肪 68g(0.80g/kg) · 碳水 250g(2.94g/kg)
+ *   餐次占比 早 25% / 午 35% / 加餐 10% / 晚 30%
+ *   运动 每周 5 练纯爬楼机，合计 175 min
+ *
+ * 方案沿革（旧基准保留备查，不删除）：
+ *   上一版（2026-09 初版）按运动日 2486 / 休息日 1989 kcal 执行，
+ *   因活动等级由「轻度 1.375」修正为「中度 1.55」，旧缺口达 TDEE 的 29%，
+ *   超出 20% 上限，已被本次复核取代。历史打卡数据仍在 store.days 中完整可读。 */
+const DIET_PLAN={
+  updated:'2026-09-27',
+  bmr:1848, tdee:2865, floor:1478,
+  phase:{adapt:{kcal:2560,def:300}, main:{kcal:2360,def:500}},
+  macro:{p:185, f:68, c:250},
+  macroKcal:{p:740, f:612, c:1000},
+  meals:[
+    {k:'m1', name:'早餐', pct:25, kcal:590, p:42, f:18, c:67, time:'起床后 1 小时内'},
+    {k:'m2', name:'午餐', pct:35, kcal:826, p:63, f:24, c:90, time:'与早餐间隔 4–6 小时'},
+    {k:'m3', name:'加餐', pct:10, kcal:236, p:25, f:7,  c:16, time:'训练后 30–60 分钟'},
+    {k:'m4', name:'晚餐', pct:30, kcal:708, p:55, f:19, c:77, time:'睡前 3 小时结束'}
+  ],
+  train:{perWeek:5, weeklyMin:175,
+    plan:[{n:'稳态燃脂',m:35},{n:'金字塔间歇',m:25},null,{n:'稳态长时',m:40},{n:'变速',m:30},{n:'低强度恢复',m:45},null]},
+  hr:{warm:'98–118', burn:'118–137', aero:'137–157', ana:'157–176'},
+  col:{p:'#2f6cc0', f:'#e0932f', c:'#4f9d69', w:'#6a7fd6'}
+};
+/* 当前所处阶段：以 settings.dietStart 为起点，前 14 天为适应期 */
+function dietPhase(){
+  const P=DIET_PLAN, st=store.settings.dietStart;
+  if(st){
+    const dd=Math.floor((new Date(todayStr())-new Date(st))/86400000);
+    if(dd>=0 && dd<14) return {key:'adapt', name:'适应期', kcal:P.phase.adapt.kcal, def:P.phase.adapt.def, day:dd+1};
+  }
+  return {key:'main', name:'主减期', kcal:P.phase.main.kcal, def:P.phase.main.def, day:null};
+}
+/* 本周一 ~ 本周日（减脂计划的自然周锚点） */
+function weekKeys(){
+  const out=[], t=new Date(), dow=(t.getDay()+6)%7, mon=new Date(t);
+  mon.setDate(t.getDate()-dow);
+  for(let i=0;i<7;i++){ const x=new Date(mon); x.setDate(mon.getDate()+i);
+    out.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')); }
+  return out;
+}
+
+/* ---------- 图表工具：全部手写 SVG / 布局，零外部依赖，风格与全站统一 ---------- */
+function dietRing(pct,color,big,sub){
+  pct=Math.max(0,Math.min(100,Math.round(pct||0)));
+  const r=46, c=2*Math.PI*r, off=c*(1-pct/100);
+  return '<svg viewBox="0 0 120 120" width="118" height="118">'+
+    '<circle cx="60" cy="60" r="'+r+'" fill="none" stroke="#dde7f3" stroke-width="11"/>'+
+    '<circle cx="60" cy="60" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="11" stroke-linecap="round" '+
+      'stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 60 60)"/>'+
+    '<text x="60" y="58" text-anchor="middle" font-size="21" font-weight="800" fill="#0f3568" '+
+      'stroke="#0f3568" stroke-width=".55" style="paint-order:stroke">'+big+'</text>'+
+    '<text x="60" y="76" text-anchor="middle" font-size="10.5" fill="#2c3b4e">'+sub+'</text></svg>';
+}
+function weightTrendSvg(n){
+  const keys=lastNDays(n||30), pts=[];
+  keys.forEach(k=>{ const d=store.days[k];
+    if(d&&d.weight!=null&&d.weight!=='') pts.push({k, v:+d.weight}); });
+  if(pts.length<2) return '<div class="empty">'+si('scale')+'记录 2 天以上体重后，这里会生成减脂曲线</div>';
+  const tgt=+(store.settings.dietTargetJin||150);
+  const W=340, H=150, padL=8, padR=8, padT=18, padB=22, N=pts.length;
+  const vs=pts.map(p=>p.v);
+  let lo=Math.min.apply(null, vs.concat([tgt])), hi=Math.max.apply(null, vs.concat([tgt]));
+  if(hi-lo<4){ hi+=2; lo-=2; }
+  const X=i=> padL+(W-padL-padR)*(N<=1?0:i/(N-1));
+  const Y=v=> padT+(H-padT-padB)*(1-(v-lo)/(hi-lo));
+  let line=''; pts.forEach((p,i)=>{ line+=(i?' L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1); });
+  const area='M'+X(0).toFixed(1)+' '+(H-padB)+' '+pts.map((p,i)=>'L'+X(i).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ')+
+             ' L'+X(N-1).toFixed(1)+' '+(H-padB)+' Z';
+  const ty=Y(tgt);
+  let h='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'">'+
+    '<defs><linearGradient id="dwg" x1="0" y1="0" x2="0" y2="1">'+
+    '<stop offset="0" stop-color="#2f6cc0" stop-opacity=".36"/>'+
+    '<stop offset="1" stop-color="#2f6cc0" stop-opacity="0"/></linearGradient></defs>';
+  for(let g=0; g<=3; g++){ const y=padT+(H-padT-padB)*g/3;
+    h+='<line x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y.toFixed(1)+'" stroke="#e3e8ee" stroke-width="1"/>'; }
+  h+='<line x1="'+padL+'" y1="'+ty.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ty.toFixed(1)+'" stroke="#e0932f" stroke-width="1.6" stroke-dasharray="5 4"/>'+
+     '<text x="'+(W-padR)+'" y="'+(ty-4).toFixed(1)+'" text-anchor="end" font-size="10" font-weight="800" fill="#a5671d">目标 '+tgt+' 斤</text>';
+  h+='<path d="'+area+'" fill="url(#dwg)"/>'+
+     '<path d="'+line+'" fill="none" stroke="#2f6cc0" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+  pts.forEach((p,i)=>{ if(i===0||i>=N-2) h+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="3.2" fill="#2f6cc0"/>'; });
+  h+='<text x="'+X(0).toFixed(1)+'" y="'+(Y(vs[0])-8).toFixed(1)+'" font-size="11" font-weight="800" fill="#0f3568" stroke="#0f3568" stroke-width=".45" style="paint-order:stroke">'+vs[0]+'</text>'+
+     '<text x="'+X(N-1).toFixed(1)+'" y="'+(Y(vs[N-1])-8).toFixed(1)+'" text-anchor="end" font-size="12.5" font-weight="800" fill="#0f3568" stroke="#0f3568" stroke-width=".45" style="paint-order:stroke">'+vs[N-1]+'</text>'+
+     '<text x="'+padL+'" y="'+(H-6)+'" font-size="10" fill="#2c3b4e">'+pts[0].k.slice(5)+'</text>'+
+     '<text x="'+(W-padR)+'" y="'+(H-6)+'" text-anchor="end" font-size="10" fill="#2c3b4e">'+pts[N-1].k.slice(5)+'</text></svg>';
+  return h;
+}
+function dietBars(keys,key,target,color,emptyHint){
+  const series=keys.map(k=>{ const d=store.days[k];
+    return {k, v:(d&&d[key]!=null&&d[key]!=='')?+d[key]:null}; });
+  if(!series.filter(x=>x.v!=null).length)
+    return '<div class="empty">'+si('chart')+'暂无「'+(emptyHint||'数据')+'」记录，打卡后自动生成</div>';
+  const H=84;
+  const max=Math.max.apply(null, series.map(x=>x.v||0).concat([target||0]))*1.15||1;
+  let h='<div style="position:relative;margin-top:16px">';
+  if(target) h+='<div style="position:absolute;top:-12px;right:0;font-size:10px;font-weight:800;color:#a5671d">目标 '+target+'</div>';
+  h+='<div style="position:relative;display:flex;align-items:flex-end;gap:4px;height:'+H+'px;border-bottom:1px solid var(--line)">';
+  series.forEach(x=>{
+    const hp=x.v==null?0:Math.max(3, x.v/max*H);
+    h+='<div style="flex:1;display:flex;justify-content:center;align-items:flex-end;height:100%">'+
+       (x.v!=null?'<div style="height:'+hp.toFixed(0)+'px;width:70%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,'+color+'cc,'+color+')"></div>'
+                 :'<div style="height:3px;width:70%;border-radius:2px;background:#dde7f3"></div>')+'</div>';
+  });
+  if(target) h+='<div style="position:absolute;left:0;right:0;top:'+(H*(1-target/max)).toFixed(0)+'px;border-top:1.6px dashed #e0932f"></div>';
+  h+='</div><div style="display:flex;gap:4px;margin-top:3px">'+
+     series.map(x=>'<div style="flex:1;text-align:center;font-size:9px;color:var(--muted)">'+x.k.slice(5)+'</div>').join('')+'</div></div>';
+  return h;
+}
+function macroStack(){
+  const mk=DIET_PLAN.macroKcal, tot=mk.p+mk.f+mk.c;
+  const segs=[
+    {name:'蛋白质',pct:mk.p/tot*100,color:DIET_PLAN.col.p,kcal:mk.p,g:DIET_PLAN.macro.p},
+    {name:'脂肪',  pct:mk.f/tot*100,color:DIET_PLAN.col.f,kcal:mk.f,g:DIET_PLAN.macro.f},
+    {name:'碳水',  pct:mk.c/tot*100,color:DIET_PLAN.col.c,kcal:mk.c,g:DIET_PLAN.macro.c}
+  ];
+  return '<div class="d-stack">'+segs.map(x=>'<div style="width:'+x.pct.toFixed(1)+'%;background:'+x.color+'">'+
+      (x.pct>=14?x.name+' '+Math.round(x.pct)+'%':'')+'</div>').join('')+'</div>'+
+    '<div class="d-legend">'+segs.map(x=>'<span class="d-li"><i style="background:'+x.color+'"></i>'+
+      '<b>'+x.name+'</b> '+x.g+'g · '+x.kcal+' kcal · <b>'+x.pct.toFixed(1)+'%</b></span>').join('')+'</div>';
+}
+function mealDonut(){
+  const M=DIET_PLAN.meals, cols=[DIET_PLAN.col.p,'#4a92dd',DIET_PLAN.col.f,DIET_PLAN.col.w];
+  const r=44, c=2*Math.PI*r; let off=0, g='';
+  M.forEach((m,i)=>{ const len=c*m.pct/100;
+    g+='<circle cx="60" cy="60" r="'+r+'" fill="none" stroke="'+cols[i]+'" stroke-width="14" '+
+       'stroke-dasharray="'+Math.max(0,len-2.5).toFixed(1)+' '+(c-len+2.5).toFixed(1)+'" '+
+       'stroke-dashoffset="'+(-off).toFixed(1)+'" transform="rotate(-90 60 60)"/>';
+    off+=len; });
+  return '<svg viewBox="0 0 120 120" width="132" height="132">'+g+
+    '<text x="60" y="57" text-anchor="middle" font-size="18.5" font-weight="800" fill="#0f3568" '+
+      'stroke="#0f3568" stroke-width=".5" style="paint-order:stroke">2360</text>'+
+    '<text x="60" y="74" text-anchor="middle" font-size="10" fill="#2c3b4e">kcal / 天</text></svg>';
+}
+function weekTrainGrid(){
+  const keys=weekKeys(), plan=DIET_PLAN.train.plan, names=['周一','周二','周三','周四','周五','周六','周日'], today=todayStr();
+  let done=0, mins=0, h='<div class="d-grid7">';
+  keys.forEach((k,i)=>{
+    const d=store.days[k]||{}, m=+d.diet_min||0, rest=!plan[i];
+    if(m>0){ done++; mins+=m; }
+    h+='<div class="d-day'+(m>0?' on':'')+(rest?' rest':'')+'">'+
+       '<div class="dw">'+names[i]+'</div>'+
+       '<div class="ds">'+(rest?'休':(m>0?m+'′':(k>today?'—':'·')))+'</div>'+
+       '<div class="dm">'+(rest?'休息':plan[i].m+'′')+'</div></div>';
+  });
+  h+='</div>';
+  const pct=Math.min(100, Math.round(mins/DIET_PLAN.train.weeklyMin*100));
+  h+='<div class="bar" style="margin-top:10px"><i style="width:'+pct+'%"></i></div>'+
+     '<div class="flex wrap" style="gap:8px;margin-top:8px">'+
+       '<span class="pill blue">本周训练 <b>'+done+'</b>/'+DIET_PLAN.train.perWeek+' 次</span>'+
+       '<span class="pill">时长 <b>'+mins+'</b>/'+DIET_PLAN.train.weeklyMin+' min</span>'+
+       '<span class="pill '+(pct>=100?'green':'yellow')+'">完成度 <b>'+pct+'%</b></span></div>';
+  return h;
+}
+
+/* ---------- 减脂核心看板 ---------- */
+function renderDietBoard(){
+  const P=DIET_PLAN, ph=dietPhase(), d=day(), s=store.settings;
+  const tgt=+(s.dietTargetJin||150), start=+(s.dietStartJin||170);
+  const m30=lastNDays(30), m14=lastNDays(14);
+  const cur=lastVal(m30,'weight');
+  const kcal=+d.diet_kcal||0, prot=+d.diet_p||0;
+
+  /* 速度：近 14 天首末差折算每周（斤/周），负值 = 下降 */
+  const wp=[]; m14.forEach(k=>{ const x=store.days[k];
+    if(x&&x.weight!=null&&x.weight!=='') wp.push(+x.weight); });
+  const speed=wp.length>=2?(wp[wp.length-1]-wp[0])/(wp.length-1)*7:null;
+  const lost=cur!=null?start-cur:null;
+  const togo=cur!=null?cur-tgt:null;
+  const eta=(togo!=null&&speed&&speed<-0.05)?Math.ceil(togo/Math.abs(speed)):null;
+  let html='';
+
+  /* ===== 1. 核心指标 ===== */
+  html+='<div class="card"><h2>'+si('flame')+'减脂核心看板'+
+      '<span class="pill blue" style="margin-left:auto">'+ph.name+' · '+ph.kcal+' kcal</span></h2>'+
+    '<div class="sub">五练纯爬楼机 · 餐次占比 <b>25 / 35 / 10 / 30</b> · 每日缺口 <b>'+ph.def+' kcal</b>（占 TDEE '+
+      Math.round(ph.def/P.tdee*100)+'%）'+(ph.day?' · 方案第 '+ph.day+' 天':'')+'</div>';
+  html+='<div class="d-kpi">'+
+    '<div class="d-box"><div class="k">当前体重</div><div class="v d-ink">'+(cur!=null?cur:'—')+(cur!=null?'<span style="font-size:12px"> 斤</span>':'')+'</div>'+
+      '<div class="t">起始 '+start+' 斤 · BMI '+((cur!=null?cur/2:start/2)/1.78/1.78).toFixed(1)+'</div></div>'+
+    '<div class="d-box"><div class="k">距目标</div><div class="v d-ink">'+(togo!=null?(togo>0?'差 '+togo.toFixed(1):'已达成'):'—')+'</div>'+
+      '<div class="t">目标 '+tgt+' 斤'+(eta?' · 预计约 '+eta+' 周':'')+'</div></div>'+
+    '<div class="d-box"><div class="k">近 14 天速度</div><div class="v d-ink">'+(speed!=null?(speed>0?'+':'')+speed.toFixed(2):'—')+'<span style="font-size:12px"> 斤/周</span></div>'+
+      '<div class="t">'+(speed==null?'记录体重后计算':(speed<-0.05?'下降中，节奏正常':(speed<0.05?'基本持平，留意平台期':'上升，需检查执行度')))+'</div></div>'+
+    '<div class="d-box"><div class="k">累计已减</div><div class="v d-ink">'+(lost!=null?(lost>0?lost.toFixed(1):'0')+'<span style="font-size:12px"> 斤</span>':'—')+'</div>'+
+      '<div class="t">方案起始 '+s.dietStart+'</div></div>'+
+  '</div>';
+  /* 平台期 / 安全底线提示 */
+  if(speed!=null && wp.length>=7 && Math.abs(speed)<0.1)
+    html+='<div class="d-warn" style="margin-top:10px">⚠️ 近两周体重基本持平。按顺序排查：① <b>隐性热量</b>（油/酱/饮料/坚果，重新精确记 3 天）；② <b>NEAT 下滑</b>（盯步数，每天补 2000–3000 步）；③ 体重已降 → 按每降 3kg 重算一次 TDEE；④ 确属平台期则安排 1–2 周<span class="d-outline">饮食休息</span>吃到 TDEE 后再回缺口。</div>';
+  if(kcal>0 && kcal<P.floor)
+    html+='<div class="d-warn" style="margin-top:10px">🚨 今日摄入 <b>'+kcal+' kcal</b>，已低于安全底线 <span class="d-outline">'+P.floor+' kcal</span>（BMR×80%）。持续低于此线会掉肌肉、代谢下调、内分泌紊乱，<b>请勿再往下压</b>。</div>';
+  if(kcal>0 && kcal>ph.kcal+400)
+    html+='<div class="d-warn" style="margin-top:10px">⚠️ 今日摄入超出方案 '+Math.round(kcal-ph.kcal)+' kcal。单日超标不必补偿性节食，第二天回到 '+ph.kcal+' kcal 正常执行即可 —— <b>报复性节食才是真正的坑</b>。</div>';
+  html+='</div>';
+
+  /* ===== 2. 体重趋势 ===== */
+  html+='<div class="card"><h2>'+si('scale')+'体重趋势 · 近 30 天</h2>'+
+    '<div class="sub">橙线为方案目标线（'+tgt+' 斤）。只看<b>周均值方向</b>，单日波动 0.5–1.5 斤属正常（水分/食物/排泄）</div>'+
+    weightTrendSvg(30);
+  const w7=lastNDays(7), wavg=avg(w7,'weight');
+  html+='<div class="flex wrap" style="gap:8px;margin-top:10px">'+
+    '<span class="pill blue">7 天均值 <b>'+wavg+'</b> 斤</span>'+
+    '<span class="pill">30 天记录 <b>'+w7.length+'</b> 天窗口</span>'+
+    '<span class="pill '+(speed!=null&&speed<-0.05?'green':'yellow')+'">周均变化 <b>'+(speed!=null?(speed>0?'+':'')+speed.toFixed(2):'—')+'</b> 斤/周</span></div>';
+  html+='<p class="muted" style="margin-top:8px;font-size:12px">体重稳定但<b>腰围下降</b>= 体成分在优化（脂肪减、肌肉保），是好现象，不必焦虑体重数字。建议每月量一次腰围（肚脐水平，目标 <span class="d-outline">&lt; 90cm</span>）并固定角度拍照。</p></div>';
+
+  /* ===== 3. 今日热量与蛋白达成 ===== */
+  const kcalPct=kcal?kcal/ph.kcal*100:0, protPct=prot?prot/P.macro.p*100:0;
+  html+='<div class="card"><h2>'+si('chart')+'今日达成度</h2>'+
+    '<div class="sub">目标：热量 <b>'+ph.kcal+' kcal</b> · 蛋白 <b>'+P.macro.p+' g</b>（蛋白是纯有氧方案里唯一的保肌杠杆）</div>'+
+    '<div class="flex wrap" style="gap:14px;justify-content:center">'+
+      '<div style="text-align:center">'+dietRing(kcalPct,P.col.p,kcal?Math.round(kcalPct)+'%':'—',kcal?kcal+' / '+ph.kcal:'热量未记录')+
+        '<div class="muted" style="font-size:12px;margin-top:2px">热量达成</div></div>'+
+      '<div style="text-align:center">'+dietRing(protPct,P.col.c,prot?Math.round(protPct)+'%':'—',prot?prot+' / '+P.macro.p+' g':'蛋白未记录')+
+        '<div class="muted" style="font-size:12px;margin-top:2px">蛋白质达成</div></div>'+
+    '</div>'+
+    (kcal?('<div class="d-ok" style="margin-top:10px">'+(kcal<=ph.kcal
+        ?'今日剩余可摄入 <span class="d-ink">'+Math.round(ph.kcal-kcal)+'</span> kcal'+(prot<P.macro.p?'，还需补蛋白 <span class="d-ink">'+Math.round(P.macro.p-prot)+'</span> g':'，蛋白已达标 👍')
+        :'今日已超 <span class="d-ink">'+Math.round(kcal-ph.kcal)+'</span> kcal，明天回到 '+ph.kcal+' 正常执行即可')+'</div>')
+      :'<div class="d-ok" style="margin-top:10px">在上方「摄入热量 / 蛋白质」填入今日数据，这里会实时计算剩余额度。</div>');
+  html+='</div>';
+
+  /* ===== 4. 宏量配比 ===== */
+  html+='<div class="card"><h2>'+si('target')+'宏量营养素配比</h2>'+
+    '<div class="sub">按 <b>2.18 / 0.80 / 2.94 g/kg</b> 折算的热量占比。碳水不要再往下砍 —— 五练爬楼机的燃料就是它</div>'+
+    macroStack()+
+    '<div class="d-scroll" style="margin-top:12px"><table class="d-tb"><thead><tr><th>营养素</th><th>每日目标</th><th>折合热量</th><th>占比</th><th>作用</th></tr></thead><tbody>'+
+      '<tr><td class="dk">蛋白质</td><td class="n">185 g</td><td>740 kcal</td><td class="n">31.5%</td><td>纯有氧方案下的保肌主力，取 1.6–2.2g/kg 区间上限</td></tr>'+
+      '<tr><td class="dk">脂肪</td><td class="n">68 g</td><td>612 kcal</td><td class="n">26.0%</td><td>不低于 0.8g/kg，保障激素与脂溶性维生素</td></tr>'+
+      '<tr><td class="dk">碳水</td><td class="n">250 g</td><td>1000 kcal</td><td class="n">42.5%</td><td>训练供能 + 恢复，砍到 130g 以下不可持续</td></tr>'+
+    '</tbody></table></div>'+
+    '<p class="muted" style="margin-top:8px;font-size:12px">全天用油上限 <span class="d-outline">20–25 ml</span>（一勺 10ml ≈ 90 kcal，是最容易失控的隐性热量）；饮水 <b>2.5–3 L</b>，训练日再加 500ml。</p></div>';
+
+  /* ===== 5. 餐次占比结构 ===== */
+  html+='<div class="card"><h2>'+si('clock')+'餐次热量占比结构</h2>'+
+    '<div class="sub">这是方案的骨架。午餐 35% 最大，因为要撑住下午训练与专注度；晚餐刻意留 30%，防「晚餐吃太少→深夜饿醒→报复性进食」</div>'+
+    '<div class="flex wrap" style="gap:16px;align-items:center">'+mealDonut()+
+      '<div class="d-legend" style="flex:1;min-width:170px;display:block">'+
+        DIET_PLAN.meals.map((m,i)=>{ const cols=[P.col.p,'#4a92dd',P.col.f,P.col.w];
+          return '<div class="d-li" style="margin:5px 0"><i style="background:'+cols[i]+'"></i>'+
+            '<b>'+m.name+'</b> '+m.pct+'% · <b>'+m.kcal+'</b> kcal</div>'; }).join('')+
+      '</div></div>'+
+    '<div class="d-scroll" style="margin-top:12px"><table class="d-tb"><thead><tr><th>餐次</th><th>占比</th><th>热量</th><th>蛋白</th><th>脂肪</th><th>碳水</th><th>时间锚点</th></tr></thead><tbody>'+
+      DIET_PLAN.meals.map(m=>'<tr><td class="dk">'+m.name+'</td><td class="n">'+m.pct+'%</td><td class="n">'+m.kcal+'</td><td>'+m.p+' g</td><td>'+m.f+' g</td><td>'+m.c+' g</td><td>'+m.time+'</td></tr>').join('')+
+      '<tr><td class="dk">合计</td><td class="n">100%</td><td class="n">2360</td><td class="n">185 g</td><td class="n">68 g</td><td class="n">250 g</td><td>—</td></tr>'+
+    '</tbody></table></div>'+
+    '<div class="d-ok" style="margin-top:10px"><b>时间可以自由，结构不能自由。</b>用餐时间不锁钟点，只守两条边界：'+
+      '<span class="d-outline">起床后 1 小时内吃早餐</span><span class="d-outline">睡前 3 小时结束最后一餐</span>；'+
+      '训练后 30–60 分钟的那份加餐建议卡点。⚠️ 「随时吃」最容易变成全天零散进食，看着都不多，全天轻松超 3000 kcal。</div></div>';
+
+  /* ===== 6. 本周训练执行 ===== */
+  html+='<div class="card"><h2>'+si('run')+'本周训练执行 · 五练爬楼机</h2>'+
+    '<div class="sub">稳态 / 金字塔间歇 / 变速三种模式轮换，周总量 <b>175 分钟</b>。'
+      +'<b>频次比单次时长更重要</b>，守不住 5 天就先压缩时长，别减天数</div>'+
+    weekTrainGrid()+
+    '<div class="d-scroll" style="margin-top:12px"><table class="d-tb"><thead><tr><th>强度区间</th><th>心率（次/分）</th><th>体感</th><th>用途</th></tr></thead><tbody>'+
+      '<tr><td class="dk">热身区</td><td class="n">'+P.hr.warm+'</td><td>轻松，能正常说话</td><td>热身与冷却</td></tr>'+
+      '<tr><td class="dk">燃脂区</td><td class="n">'+P.hr.burn+'</td><td>能断续说完整句子</td><td>稳态燃脂（周一/周四）</td></tr>'+
+      '<tr><td class="dk">有氧区</td><td class="n">'+P.hr.aero+'</td><td>只能说短句</td><td>变速与间歇的快速段</td></tr>'+
+      '<tr><td class="dk">无氧区</td><td class="n">'+P.hr.ana+'</td><td>说不出完整句子</td><td>间歇峰值（短暂）</td></tr>'+
+    '</tbody></table></div>'+
+    '<div class="d-ok" style="margin-top:10px"><b>爬楼机技术要点：</b>躯干直立别趴扶手（趴扶手实际做功少 20–30%）、全脚掌踩实、膝盖对准脚尖。'
+      +'每次训练后重点拉伸<span class="d-outline">小腿</span><span class="d-outline">髂腰肌</span>—— 长期只爬楼机，这两处会变紧、踝关节活动度下降。</div>'+
+    '<div class="d-warn" style="margin-top:10px">出现<b>胸闷、胸痛、心悸、头晕、眼前发黑</b>立即停止并就医；膝前侧尖锐疼痛立即改骑行或椭圆机。<b>请勿叠加 16:8 断食或进一步压热量。</b></div></div>';
+
+  /* ===== 7. 方案基准 ===== */
+  html+='<div class="card"><h2>'+si('target')+'方案基准（2026-09-27 复核）</h2>'+
+    '<div class="sub">数据依据身高体重与活动系数测算，仅供参考；以体感与体重趋势为准</div>'+
+    '<div class="d-scroll"><table class="d-tb"><thead><tr><th>项目</th><th>数值</th><th>说明</th></tr></thead><tbody>'+
+      '<tr><td class="dk">基础代谢 BMR</td><td class="n">1848 kcal</td><td>Mifflin-St Jeor 公式</td></tr>'+
+      '<tr><td class="dk">每日总消耗 TDEE</td><td class="n">2865 kcal</td><td>每周 5 练 → 中度活动系数 1.55</td></tr>'+
+      '<tr><td class="dk">适应期</td><td class="n">2560 kcal</td><td>第 1–2 周，缺口 300，先排水分建习惯</td></tr>'+
+      '<tr><td class="dk">主减期</td><td class="n">2360 kcal</td><td>第 3–12 周，缺口 500（占 TDEE 17.5%，不超 20% 上限）</td></tr>'+
+      '<tr><td class="dk">安全下限</td><td class="n">1478 kcal</td><td>BMR×80%，任何时候不得低于此行</td></tr>'+
+      '<tr><td class="dk">预期速度</td><td class="n">0.6–0.9 kg/周</td><td>12 周预计减 7–10kg（170 → 150 斤左右）</td></tr>'+
+    '</tbody></table></div>'+
+    '<p class="muted" style="margin-top:10px;font-size:12px"><b>方案沿革：</b>上一版基准为运动日 2486 / 休息日 1989 kcal（2026-09 初版）。'+
+      '因活动等级由「轻度 1.375」修正为「中度 1.55」，旧缺口达 TDEE 的 29%，超出 20% 安全上限，已被本次复核取代；'+
+      '<b>历史打卡数据未删除</b>，仍在本地存储中完整可读。</p>'+
+    '<p class="muted" style="margin-top:6px;font-size:12px">⚠️ 本方案仅供参考，不替代专业医疗诊断。如有慢性疾病、运动损伤史或正在服药，请先咨询医生。</p></div>';
+
+  return html;
 }
 function renderGoalPage(g){
   const G=GOALS[g]; const d=day(); const s=store.settings;
@@ -1200,6 +1574,7 @@ function renderGoalPage(g){
   G.checkin.forEach(f=>{
     if(f.type==='check') html+=checkRow(f.k,f.t,f.h,d[f.k]);
     else if(f.type==='num') html+=numField(f.k,f.t,f.unit,d[f.k],f.ph);
+    else if(f.type==='sel'){ const opts=['未记录'].concat(f.opts||[]); html+=selField(f.k,f.t,opts,d[f.k]||'未记录'); }
     else html+=textField(f.k,f.t,d[f.k],f.ph);
   });
   html+='</div>';
@@ -1249,6 +1624,7 @@ function pushMorning(){
   const d=day(); const s=store.settings;
   const items=[];
   if(!d.fit_done) items.push('今日训练（爬楼机为主）');
+  if(!d.diet_done) items.push('减脂方案达标（餐次 25/35/10/30 + 五练爬楼机）');
   if(!d.sk_am||!d.sk_pm) items.push('早晚分区护肤');
   if(!d.en_speak) items.push('英语口语练习');
   if(!d.save_today) items.push('存入今日储蓄');
@@ -1573,16 +1949,24 @@ function lastNDays(n){ const out=[]; const d=new Date();
     out.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')); }
   return out; }
 function agg(days){
-  let fit=0,sleep=0,sn=0,exp=0,save=0,en=0,sk=0;
+  let fit=0,sleep=0,sn=0,exp=0,save=0,en=0,sk=0,diet=0,dk=0,dkn=0,dm=0,dmn=0;
   days.forEach(k=>{ const d=store.days[k]; if(!d)return;
     if(d.fit_done)fit++; const h=sleepHours(d); if(h>0){sleep+=h;sn++;}
     exp+=(d.expenses||[]).reduce((a,e)=>a+(+e.amt||0),0); save+=(+d.save_today||0);
-    if(d.en_speak||d.en_listen||d.en_recite)en++; if(d.sk_am&&d.sk_pm)sk++; });
-  return {days:days.filter(k=>store.days[k]).length, fit, sleep:sn?(sleep/sn).toFixed(1):'—', exp, save, en, sk};
+    if(d.en_speak||d.en_listen||d.en_recite)en++; if(d.sk_am&&d.sk_pm)sk++;
+    /* 减脂模块统计（2026-09-27 接入） */
+    if(d.diet_done)diet++;
+    if(d.diet_kcal!=null&&d.diet_kcal!==''){ dk+=+d.diet_kcal; dkn++; }
+    if(d.diet_min!=null&&d.diet_min!==''){ dm+=+d.diet_min; dmn++; } });
+  return {days:days.filter(k=>store.days[k]).length, fit, sleep:sn?(sleep/sn).toFixed(1):'—', exp, save, en, sk,
+    diet, dkcal:dkn?Math.round(dk/dkn):'—', dmin:dmn?Math.round(dm/dmn):'—'};
 }
 function statBlock(a){
   return '<div class="stat-grid">'+
     '<div class="stat"><div class="v">'+a.fit+'</div><div class="l">训练天数</div></div>'+
+    '<div class="stat"><div class="v">'+a.diet+'</div><div class="l">减脂达标天</div></div>'+
+    '<div class="stat"><div class="v">'+a.dkcal+'</div><div class="l">日均摄入 kcal</div></div>'+
+    '<div class="stat"><div class="v">'+a.dmin+'</div><div class="l">日均训练 min</div></div>'+
     '<div class="stat"><div class="v">'+a.sleep+'</div><div class="l">平均睡眠(h)</div></div>'+
     '<div class="stat"><div class="v">¥'+a.exp.toFixed(0)+'</div><div class="l">总支出</div></div>'+
     '<div class="stat"><div class="v">¥'+a.save.toFixed(0)+'</div><div class="l">总储蓄</div></div>'+
@@ -2358,6 +2742,7 @@ function renderSkin(){
   G.checkin.forEach(f=>{
     if(f.type==='check') html+=checkRow(f.k,f.t,f.h,d[f.k]);
     else if(f.type==='num') html+=numField(f.k,f.t,f.unit,d[f.k],f.ph);
+    else if(f.type==='sel'){ const opts=['未记录'].concat(f.opts||[]); html+=selField(f.k,f.t,opts,d[f.k]||'未记录'); }
     else html+=textField(f.k,f.t,d[f.k],f.ph);
   });
   html+='</div>';
@@ -2515,6 +2900,14 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v2.3',date:'2026-09-27',items:[
+      '新增「减脂」主模块：目标主线由四条扩展为五条（健身/减脂/英语/护肤/理财），雷达图同步为五维',
+      '核心数据看板：体重趋势面积图（含目标线与周均速度）、热量与蛋白达成环、宏量配比堆叠条、餐次占比环形图、本周五练执行格、近 7 天趋势柱状',
+      '每日录入：体重/摄入热量/蛋白质/训练时长/训练模式/破功项/身体反馈，与「健身」模块共用体重字段，避免两处打架',
+      '智能提示：自动识别平台期（近两周持平）、摄入低于安全下限（BMR×80%）、单日超标，并给出对应处置动作',
+      '视觉规范：关键数字采用「加粗 + 同色深描边」（.d-ink / .d-outline），不使用白色描边以免发虚；信息层级为 数值 > 标签 > 正文强调 > 辅助说明',
+      '基准复核：活动等级由轻度 1.375 修正为中度 1.55，TDEE 2865，主减期 2360 kcal（缺口 500，占 17.5%），蛋白 185g / 脂肪 68g / 碳水 250g；旧基准（运动日 2486 / 休息日 1989）作废但保留备查',
+      '报表新增三项统计：减脂达标天、日均摄入 kcal、日均训练 min']},
     {ver:'v2.2',date:'2026-09-08',items:['下线「体态矫正」独立模块：价值有限、体验鸡肋，移除导航入口、打卡页、每日任务与雷达图维度（五维→四维）','历史打卡数据完整保留，未删除；已预留扩展点，后续将基于「无氧训练」数据以更合适的方式重新接入']},
     {ver:'v2.1',date:'2026-09-05',items:['收集箱新增「目标细化」：目标一键拆成「阶段→任务」目标树','支持持续迭代：追问拆解、继续拆解、补充想法、动态调整','任务含优先级（高/中/低）与三态进度（未开始/进行中/已完成）','目标树进度可视化 + 实时「下一步行动」建议']},
     {ver:'v2.0',date:'2026-07-29',items:['全新响应式布局：桌面左侧导航 + 手机底部 4 入口 + 抽屉菜单','新增「Todo 清单」：自定义待办、完成鼓励彩蛋','新增「收集箱」：灵感/待办/链接统一暂存，可转待办','新增「AI 帮手」：训练/护肤/英语/存钱四能力','护肤深度扩展：诊断/晨晚周流程/产品库/药品库/预算','统一 SVG 图标，移除 emoji，蓝色主题 + 狗哥背景延续','圆圈问号帮助、使用说明、更新日志','GitHub Pages 一键部署，跨设备文本迁移']},
@@ -2553,6 +2946,14 @@ function renderMe(){
   html+='<div class="card"><h2>'+si('note')+'使用说明 & 帮助</h2><div class="flex wrap" style="gap:8px">'+
     '<button class="btn ghost sm" onclick="showUsage()">'+si('help')+' 查看使用说明</button>'+
     '<button class="btn ghost sm" onclick="switchTab(\'updatelog\')">'+si('flag')+' 更新日志</button></div></div>';
+  html+='<div class="card"><h2>'+si('flame')+'减脂目标</h2>'+
+    '<div class="sub">用于「减脂」模块的进度与阶段判断（方案起算后前 14 天自动按适应期 2560 kcal 计算）</div>'+
+    '<div class="flex" style="gap:8px">'+
+      '<div class="field" style="flex:1">'+numField('dietStartJin','起始体重',null,s.dietStartJin,'斤')+'</div>'+
+      '<div class="field" style="flex:1">'+numField('dietTargetJin','目标体重',null,s.dietTargetJin,'斤')+'</div>'+
+    '</div>'+
+    '<div class="field"><label>方案起始日</label><input type="date" class="txt" data-k="dietStart" value="'+esc(s.dietStart||todayStr())+'"></div>'+
+    '<p class="muted" style="font-size:12px;margin-top:6px">按 12 周减 7–10kg（约 14–20 斤）的合理速度设置；体重每降 3kg 建议重新校核一次热量基准。</p></div>';
   html+='<div class="card"><h2>'+si('doc')+'数据管理</h2><div class="flex wrap" style="gap:8px">'+
     '<button class="btn ghost sm" onclick="exportData()">'+si('arrow')+' 导出备份(JSON)</button>'+
     '<button class="btn ghost sm" onclick="importData()">导入备份</button>'+
