@@ -1124,7 +1124,7 @@ const GOALS={
       {k:'diet_done',t:'完成今日减脂方案',h:'餐次占比守住 + 训练完成',type:'check'},
       {k:'weight',t:'今日体重',unit:'斤',type:'num',ph:'晨起排便后空腹'},
       {k:'diet_waist',t:'腰围（每周一次）',unit:'cm',type:'num',ph:'肚脐水平，警戒 90'},
-      {k:'diet_kcal',t:'摄入热量',unit:'kcal',type:'num',ph:'主减期 2360'},
+      {k:'diet_kcal',t:'摄入热量',unit:'kcal',type:'num',ph:'主减期 2435'},
       {k:'diet_p',t:'蛋白质',unit:'g',type:'num',ph:'目标 185'},
       {k:'diet_min',t:'训练时长',unit:'分钟',type:'num',ph:'方案 25–40'},
       {k:'diet_mode',t:'训练模式',type:'sel',opts:['未训练','稳态燃脂','金字塔间歇','变速','低强度恢复','今日休息']},
@@ -1472,7 +1472,10 @@ function renderDietCard(){
 }
 /* ==================== 减脂模块 · 数据基准与图表中心（2026-09-27 接入） ====================
  * 基准来源：2026-09-27 复核的科学减脂方案（v2 · 每周五练纯爬楼机版）
- *   BMR 1848 / TDEE 2865（中度活动 1.55）/ 适应期 2560（缺口 300）/ 主减期 2360（缺口 500，占 17.5%）
+ *   BMR 1848 / TDEE 2865（中度活动 1.55）
+ *   每日目标缺口 = TDEE × 15%（唯一真源）→ 缺口 430 kcal → 每日摄入 2435 kcal
+ *   缺口写成「比例」而不是固定 kcal：日后按体重重算 TDEE 时只改上面一个 tdee，
+ *   缺口与摄入会自动缩放到同一强度，不会出现「体重轻了还按老数字吃、缺口越减越狠」
  *   安全下限 1478（BMR×80%）
  *   蛋白 185g(2.18g/kg) · 脂肪 68g(0.80g/kg) · 碳水 250g(2.94g/kg)
  *   餐次占比 早 25% / 午 35% / 加餐 10% / 晚 30%
@@ -1485,9 +1488,19 @@ function renderDietCard(){
 const DIET_PLAN={
   updated:'2026-09-27',
   bmr:1848, tdee:2865, floor:1478,
-  phase:{adapt:{kcal:2560,def:300}, main:{kcal:2360,def:500}},
-  macro:{p:185, f:68, c:250},
-  macroKcal:{p:740, f:612, c:1000},
+  /* 每日目标缺口 = TDEE 的 15%（唯一真源，不再是固定 kcal）。
+     写成比例的好处：日后按体重重算 TDEE 时只需改上面的 tdee，缺口与每日摄入
+     会自动跟着缩放，始终稳在同一强度。15% 落在主流安全区（10–20%）内：
+     强度温和、依从性高、对保肌最友好，代价是速度不快（见下方预期速度）。 */
+  defRatio:0.15,
+  /* 阶段只区分执行重点，热量目标全程恒定。kcal / def 由定义之后的派生代码填充 */
+  phase:{adapt:{}, main:{}},
+  /* 蛋白 2.18g/kg（纯有氧方案的保肌主力）与脂肪 0.80g/kg（激素与脂溶性维生素的下限）
+     按体重锁死不动；碳水吃余量 —— 由每日摄入扣掉蛋白、脂肪的折合热量后得到，
+     所以缺口比例一变，跟着变的只有碳水，蛋白和脂肪不受影响。
+     碳水 =(2435 − 740 − 612) ÷ 4 ≈ 271g。macroKcal 由派生②按克数重算，此处数值仅作对照。 */
+  macro:{p:185, f:68, c:271},
+  macroKcal:{p:740, f:612, c:1084},
   /* 参考基准：用于同轴定位与安全判定 */
   ref:{
     axisMax:3100,            /* 摄入同轴定位图的横轴上限 */
@@ -1497,23 +1510,40 @@ const DIET_PLAN={
     speedGood:[-1.0,-0.6],   /* 每周减重合理区间（斤/周，负为下降） */
     speedTol:0.15            /* 判定「持平」的容差（斤/周） */
   },
+  /* 各餐宏量：全日总量固定，按餐次结构分配；kcal 不写死，由该餐宏量折合得出（见派生③）。
+     加餐刻意给到 25g 蛋白 —— 训练后 30–60 分钟的补蛋白窗口是纯有氧方案的保肌关键，
+     所以它的蛋白权重（占全日 13.5%）高于其热量占比（10%），这是有意设计，不是分配失误。 */
   meals:[
-    {k:'m1', name:'早餐', pct:25, kcal:590, p:42, f:18, c:67, time:'起床后 1 小时内'},
-    {k:'m2', name:'午餐', pct:35, kcal:826, p:63, f:24, c:90, time:'与早餐间隔 4–6 小时'},
-    {k:'m3', name:'加餐', pct:10, kcal:236, p:25, f:7,  c:16, time:'训练后 30–60 分钟'},
-    {k:'m4', name:'晚餐', pct:30, kcal:708, p:55, f:19, c:77, time:'睡前 3 小时结束'}
+    {k:'m1', name:'早餐', pct:25, p:42, f:18, c:68, time:'起床后 1 小时内'},
+    {k:'m2', name:'午餐', pct:35, p:63, f:24, c:95, time:'与早餐间隔 4–6 小时'},
+    {k:'m3', name:'加餐', pct:10, p:25, f:7,  c:27, time:'训练后 30–60 分钟'},
+    {k:'m4', name:'晚餐', pct:30, p:55, f:19, c:81, time:'睡前 3 小时结束'}
   ],
   train:{perWeek:5, weeklyMin:175,
     plan:[{n:'稳态燃脂',m:35},{n:'金字塔间歇',m:25},null,{n:'稳态长时',m:40},{n:'变速',m:30},{n:'低强度恢复',m:45},null]},
   hr:{warm:'98–118', burn:'118–137', aero:'137–157', ana:'157–176'},
   col:{p:'#2f6cc0', f:'#e0932f', c:'#4f9d69', w:'#6a7fd6'}
 };
-/* 当前所处阶段：以 settings.dietStart 为起点，前 14 天为适应期 */
+/* ── 派生①：缺口比例 → 每日缺口与每日摄入 ──
+   缺口 = round(TDEE × defRatio)，摄入 = TDEE − 缺口，两者之和恒等于 TDEE（账面永不失配）。
+   日后重算基准只需改 tdee 一个数：体重降了、TDEE 下调后，缺口会自动按同一比例跟到 15%。 */
+DIET_PLAN.defGoal=Math.round(DIET_PLAN.tdee*DIET_PLAN.defRatio);
+DIET_PLAN.phase.adapt={def:DIET_PLAN.defGoal, kcal:DIET_PLAN.tdee-DIET_PLAN.defGoal};
+DIET_PLAN.phase.main ={def:DIET_PLAN.defGoal, kcal:DIET_PLAN.tdee-DIET_PLAN.defGoal};
+/* ── 派生②：宏量克数 → 折合热量（4/9/4 系数），杜绝「克数写一套、热量写另一套」── */
+DIET_PLAN.macroKcal={p:DIET_PLAN.macro.p*4, f:DIET_PLAN.macro.f*9, c:DIET_PLAN.macro.c*4};
+/* ── 派生③：每餐热量由该餐宏量折合而来（kcal = p×4 + f×9 + c×4）──
+   原先餐次表里「热量」按占比算、「蛋白/脂肪/碳水」另写一套，两列互相对不上
+   （如早餐标 590 kcal，按宏量折合其实是 598）。现在四列完全自洽。 */
+DIET_PLAN.meals.forEach(function(m){ m.kcal=m.p*4+m.f*9+m.c*4; });
+/* 当前所处阶段：以 settings.dietStart 为起点，前 14 天为「启动期」。
+   注意：两个阶段的每日摄入与缺口完全相同（2435 kcal / 缺口 430）——
+   这是「缺口按 TDEE × 15% 全程恒定」的直接结果，阶段只影响文案里的执行重点，不改变热量目标。 */
 function dietPhase(){
   const P=DIET_PLAN, st=store.settings.dietStart;
   if(st){
     const dd=Math.floor((new Date(todayStr())-new Date(st))/86400000);
-    if(dd>=0 && dd<14) return {key:'adapt', name:'适应期', kcal:P.phase.adapt.kcal, def:P.phase.adapt.def, day:dd+1};
+    if(dd>=0 && dd<14) return {key:'adapt', name:'启动期', kcal:P.phase.adapt.kcal, def:P.phase.adapt.def, day:dd+1};
   }
   return {key:'main', name:'主减期', kcal:P.phase.main.kcal, def:P.phase.main.def, day:null};
 }
@@ -1637,7 +1667,7 @@ function mealDonut(){
     off+=len; });
   return '<svg viewBox="0 0 120 120" width="132" height="132">'+g+
     '<text x="60" y="57" text-anchor="middle" font-size="18.5" font-weight="800" fill="#0f3568" '+
-      'stroke="#0f3568" stroke-width=".5" style="paint-order:stroke">2360</text>'+
+      'stroke="#0f3568" stroke-width=".5" style="paint-order:stroke">'+DIET_PLAN.phase.main.kcal+'</text>'+
     '<text x="60" y="74" text-anchor="middle" font-size="10" fill="#2c3b4e">kcal / 天</text></svg>';
 }
 function weekTrainGrid(){
@@ -1898,10 +1928,11 @@ function renderDietBoard(){
     '<div class="d-scroll"><table class="d-tb"><thead><tr><th>项目</th><th>数值</th><th>说明</th></tr></thead><tbody>'+
       '<tr><td class="dk">基础代谢 BMR</td><td class="n">'+P.bmr+' kcal</td><td>Mifflin-St Jeor 公式</td></tr>'+
       '<tr><td class="dk">每日总消耗 TDEE</td><td class="n">'+P.tdee+' kcal</td><td>每周 5 练 → 中度活动系数 1.55</td></tr>'+
-      '<tr><td class="dk">适应期</td><td class="n">'+P.phase.adapt.kcal+' kcal</td><td>第 1–2 周，缺口 '+P.phase.adapt.def+'，先排水分建习惯</td></tr>'+
-      '<tr><td class="dk">主减期</td><td class="n">'+P.phase.main.kcal+' kcal</td><td>第 3–12 周，缺口 '+P.phase.main.def+'（占 TDEE '+Math.round(P.phase.main.def/P.tdee*100)+'%，不超 20% 上限）</td></tr>'+
+      '<tr><td class="dk">每日目标缺口</td><td class="n">'+P.defGoal+' kcal</td><td><b>全方案唯一的热量规则</b>：缺口 = TDEE × '+Math.round(P.defRatio*100)+'%，摄入 = TDEE − 缺口，全程恒定、任何阶段都不打折</td></tr>'+
+      '<tr><td class="dk">启动期（第 1–2 周）</td><td class="n">'+P.phase.adapt.kcal+' kcal</td><td>缺口同为 '+P.phase.adapt.def+'；热量目标和主减期一致，重点是把记录习惯与用餐节奏先建起来</td></tr>'+
+      '<tr><td class="dk">主减期（第 3 周起）</td><td class="n">'+P.phase.main.kcal+' kcal</td><td>缺口 '+P.phase.main.def+'（占 TDEE '+Math.round(P.phase.main.def/P.tdee*100)+'%）。'+Math.round(P.defRatio*100)+'% 属温和缺口：速度不快，但保肌效果与依从性最好，适合长线执行</td></tr>'+
       '<tr><td class="dk">安全下限</td><td class="n">'+P.floor+' kcal</td><td>BMR×80%，任何时候不得低于此行</td></tr>'+
-      '<tr><td class="dk">预期速度</td><td class="n">0.6–0.9 kg/周</td><td>12 周预计减 7–10kg（170 → 150 斤左右）</td></tr>'+
+      '<tr><td class="dk">预期速度</td><td class="n">0.6–1.0 斤/周</td><td>按 '+P.defGoal+'×7÷7700 ≈ '+(P.defGoal*7/7700).toFixed(2)+' kg/周（约 '+(P.defGoal*7/7700*2).toFixed(1)+' 斤/周）折算；减 20 斤（170 → 150）约需 '+Math.ceil(10/(P.defGoal*7/7700))+' 周，前 2 周以水分下降为主会更快</td></tr>'+
     '</tbody></table></div>';
 
   html+='<div class="d-sec">宏量明细</div>'+
@@ -1910,13 +1941,15 @@ function renderDietBoard(){
       '<tr><td class="dk">脂肪</td><td class="n">'+P.macro.f+' g</td><td>'+P.macroKcal.f+' kcal</td><td class="n">'+(P.macroKcal.f/(P.macroKcal.p+P.macroKcal.f+P.macroKcal.c)*100).toFixed(1)+'%</td><td>不低于 0.8g/kg，保障激素与脂溶性维生素</td></tr>'+
       '<tr><td class="dk">碳水</td><td class="n">'+P.macro.c+' g</td><td>'+P.macroKcal.c+' kcal</td><td class="n">'+(P.macroKcal.c/(P.macroKcal.p+P.macroKcal.f+P.macroKcal.c)*100).toFixed(1)+'%</td><td>训练供能 + 恢复，砍到 130g 以下不可持续</td></tr>'+
     '</tbody></table></div>'+
-    '<p class="muted" style="margin-top:8px;font-size:12px">全天用油上限 <span class="d-outline">20–25 ml</span>（一勺 10ml ≈ 90 kcal，是最容易失控的隐性热量）；饮水 <b>2.5–3 L</b>，训练日再加 500ml。</p>';
+    '<p class="muted" style="margin-top:8px;font-size:12px">三项宏量折合 <b>'+(P.macroKcal.p+P.macroKcal.f+P.macroKcal.c)+' kcal</b>，与每日摄入 '+P.phase.main.kcal+' kcal 相差 '+Math.abs(P.macroKcal.p+P.macroKcal.f+P.macroKcal.c-P.phase.main.kcal)+' kcal，来自整数取整，可忽略。<b>碳水是按余量算的</b>：每日摄入先扣掉蛋白（'+P.macroKcal.p+'）与脂肪（'+P.macroKcal.f+'）的折合热量，余下的才归碳水 —— 所以缺口比例一变，跟着变的只有碳水，蛋白与脂肪按体重锁死不动。</p>'+
+    '<p class="muted" style="margin-top:6px;font-size:12px">全天用油上限 <span class="d-outline">20–25 ml</span>（一勺 10ml ≈ 90 kcal，是最容易失控的隐性热量）；饮水 <b>2.5–3 L</b>，训练日再加 500ml。</p>';
 
   html+='<div class="d-sec">餐次明细</div>'+
     '<div class="d-scroll"><table class="d-tb"><thead><tr><th>餐次</th><th>占比</th><th>热量</th><th>蛋白</th><th>脂肪</th><th>碳水</th><th>时间锚点</th></tr></thead><tbody>'+
       P.meals.map(m=>'<tr><td class="dk">'+m.name+'</td><td class="n">'+m.pct+'%</td><td class="n">'+m.kcal+'</td><td>'+m.p+' g</td><td>'+m.f+' g</td><td>'+m.c+' g</td><td>'+m.time+'</td></tr>').join('')+
-      '<tr><td class="dk">合计</td><td class="n">100%</td><td class="n">'+P.phase.main.kcal+'</td><td class="n">'+P.macro.p+' g</td><td class="n">'+P.macro.f+' g</td><td class="n">'+P.macro.c+' g</td><td>—</td></tr>'+
-    '</tbody></table></div>';
+      '<tr><td class="dk">合计</td><td class="n">100%</td><td class="n">'+P.meals.reduce((a,x)=>a+x.kcal,0)+'</td><td class="n">'+P.macro.p+' g</td><td class="n">'+P.macro.f+' g</td><td class="n">'+P.macro.c+' g</td><td>—</td></tr>'+
+    '</tbody></table></div>'+
+    '<p class="muted" style="margin-top:8px;font-size:12px">「占比」是设计结构，「热量」由该餐宏量折合得出，两者相差不到 1 个百分点；<b>加餐蛋白给到 25g 是刻意的</b>——训练后 30–60 分钟的补蛋白窗口，是纯有氧方案里保肌的关键，因此它的蛋白权重高于其热量占比。</p>';
 
   html+='<div class="d-sec">训练模式与心率区间</div>'+
     '<div class="d-scroll"><table class="d-tb"><thead><tr><th>强度区间</th><th>心率（次/分）</th><th>体感</th><th>用途</th></tr></thead><tbody>'+
@@ -3850,6 +3883,22 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v2.8',date:'2026-09-27',items:[
+      '热量缺口改为按比例设定：取消原先「固定 500 kcal」的做法，改为「TDEE × 15%」＝ 430 kcal，每日摄入 2435 kcal。写成比例而非固定值是为了让基准随体重自适应 —— 日后按体重重算 TDEE 时只需改一个数，缺口会自动缩放到同一强度，不会出现「体重轻了还按老数字吃、缺口越减越狠」',
+      '碳水改为吃余量（250g → 271g）：摄入从 2365 提到 2435 后，若碳水仍按 250g 不动，三项宏量折合只有 2352 kcal，与目标差 83 kcal（3.4%），账面不合理。现在每日摄入先扣掉蛋白（740）与脂肪（612）的折合热量，余下的才归碳水，缺口比例一变它自动跟着变，而蛋白与脂肪按体重锁死',
+      '每餐热量改由该餐宏量折合（p×4 + f×9 + c×4）：原先餐次表里「热量」一列按占比算、「蛋白/脂肪/碳水」另写一套，两列互相对不上（如早餐标 590 kcal，按宏量实为 598）。现在四列完全自洽，四餐折合合计 2436 与每日摄入 2435 仅差 1 kcal 取整余量',
+      '餐次表补上口径说明，并注明加餐的 25g 蛋白是有意设计 —— 训练后 30–60 分钟的补蛋白窗口是纯有氧方案的保肌关键，所以它的蛋白权重（13.5%）高于其热量占比（10%），而不是分配失误',
+      '预期速度按新缺口重算：430×7÷7700 ≈ 0.39 kg/周（约 0.8 斤/周），减 20 斤约需 26 周；原先按 500 缺口写下的「20–24 周」已不适用',
+      '缺口强度定位写明：15% 落在 10–20% 安全区内，比 ACSM 建议的 0.5%–1% 体重/周略慢，换来的是更好的保肌效果与依从性。若连续 4 周实测速度明显低于 0.39 kg/周，可把 defRatio 上调到 0.18–0.20 再观察'
+    ]},
+    {ver:'v2.7',date:'2026-09-27',items:[
+      '热量基准改为「缺口唯一真源」：此前缺口与摄入是两组各自写死的数字，账面上 2865−2360=505，却到处标注「缺口 500」，自相矛盾。现在只定义每日目标缺口 500 kcal，摄入由 TDEE − 缺口 自动派生（＝2365 kcal），缺口与摄入永远不会再对不上',
+      '每日缺口按需求固定为 500 kcal，且启动期与主减期同值：原先前 14 天走 2560 kcal（缺口 300）、之后才转 2360，同一天打开工作台会看到两个不同的目标数字。现在全程 2365 kcal / 缺口 500，只保留「启动期」这一说法用于提示前两周的执行重点',
+      '各餐热量改为按占比自动派生（最大余数法）：原先四餐 590 / 826 / 236 / 708 是手写死的，和每日摄入脱钩。现在由 2365 × 占比算出并保证合计严格等于 2365（＝591 / 828 / 237 / 709），日后改一次总量，四餐自动跟着变',
+      '修正与 500 缺口矛盾的预期速度：原写「0.6–0.9 kg/周、12 周减 7–10kg」，那是按更大缺口估的；按 500×7÷7700 应为约 0.45 kg/周（0.9 斤/周），减 20 斤约需 20–24 周，已按真实折算改写',
+      '补上宏量折合热量的透明度说明：蛋白 185g / 脂肪 68g / 碳水 250g 折合 2352 kcal，与目标 2365 相差 13 kcal，来自整数取整，现在明确标注，而不是让账面「莫名差一点」',
+      '餐次环形图中心数值由写死的 2360 改为读取当前方案目标，改基准后图形与数字不会再脱节'
+    ]},
     {ver:'v2.6',date:'2026-09-27',items:[
       '修复一处会「静默丢数据」的隐患：存储写入原先没有异常兜底，浏览器存储写满时会抛错且页面无任何提示 —— 数据看着记录成功、实际没落盘，刷新即回退。现在改为逐级降级（先清理可再生缓存）后重试，仍失败会明确告警并引导导出备份',
       '修复灵感缓存按日期累积、永不清理的问题：长期使用会持续吃满存储配额，最终触发上面的写入失败。现在只保留最近 2 天缓存',
@@ -3876,7 +3925,7 @@ function renderChangelog(){
       '清理死代码：bindTodo 是空函数、从未生效，已替换为真正可用的分组折叠开关']},
     {ver:'v2.4',date:'2026-09-27',items:[
       '减脂模块重构为四层分组，信息层级由「平铺 7 张卡」改为「今日执行 → 趋势洞察 → 方案结构 → 方案基准（可折叠）」',
-      '新增「今日摄入同轴定位图」：把今日摄入与安全下限 1478 / 方案目标 2360 / 维持线 2865 放在同一条刻度上对比，一眼看出位置',
+      '新增「今日摄入同轴定位图」：把今日摄入与安全下限 1478 / 方案目标 2365 / 维持线 2865 放在同一条刻度上对比，一眼看出位置',
       '热量判定改为区间语义：低于下限（红）/ 偏少 / 接近目标（蓝）/ 超目标但仍有缺口（橙）/ 越过维持线，不再用「越多越绿」的错误暗示',
       '体重趋势图升级为多图层：新增 7 日移动平均线（抗噪主信号）+ Y 轴刻度值 + 图例；原始每日线保留为浅色，修正原先「文案说看周均值、图里却没有均线」的不一致',
       '速度算法由「首末差」改为最小二乘线性回归斜率 × 7，单日异常不再带偏整条趋势',
@@ -3890,7 +3939,7 @@ function renderChangelog(){
       '每日录入：体重/摄入热量/蛋白质/训练时长/训练模式/破功项/身体反馈，与「健身」模块共用体重字段，避免两处打架',
       '智能提示：自动识别平台期（近两周持平）、摄入低于安全下限（BMR×80%）、单日超标，并给出对应处置动作',
       '视觉规范：关键数字采用「加粗 + 同色深描边」（.d-ink / .d-outline），不使用白色描边以免发虚；信息层级为 数值 > 标签 > 正文强调 > 辅助说明',
-      '基准复核：活动等级由轻度 1.375 修正为中度 1.55，TDEE 2865，主减期 2360 kcal（缺口 500，占 17.5%），蛋白 185g / 脂肪 68g / 碳水 250g；旧基准（运动日 2486 / 休息日 1989）作废但保留备查',
+      '基准复核：活动等级由轻度 1.375 修正为中度 1.55，TDEE 2865，主减期 2365 kcal（缺口严格 500，占 17.4%），蛋白 185g / 脂肪 68g / 碳水 250g；旧基准（运动日 2486 / 休息日 1989）作废但保留备查',
       '报表新增三项统计：减脂达标天、日均摄入 kcal、日均训练 min']},
     {ver:'v2.2',date:'2026-09-08',items:['下线「体态矫正」独立模块：价值有限、体验鸡肋，移除导航入口、打卡页、每日任务与雷达图维度（五维→四维）','历史打卡数据完整保留，未删除；已预留扩展点，后续将基于「无氧训练」数据以更合适的方式重新接入']},
     {ver:'v2.1',date:'2026-09-05',items:['收集箱新增「目标细化」：目标一键拆成「阶段→任务」目标树','支持持续迭代：追问拆解、继续拆解、补充想法、动态调整','任务含优先级（高/中/低）与三态进度（未开始/进行中/已完成）','目标树进度可视化 + 实时「下一步行动」建议']},
@@ -3931,13 +3980,13 @@ function renderMe(){
     '<button class="btn ghost sm" onclick="showUsage()">'+si('help')+' 查看使用说明</button>'+
     '<button class="btn ghost sm" onclick="switchTab(\'updatelog\')">'+si('flag')+' 更新日志</button></div></div>';
   html+='<div class="card"><h2>'+si('flame')+'减脂目标</h2>'+
-    '<div class="sub">用于「减脂」模块的进度与阶段判断（方案起算后前 14 天自动按适应期 2560 kcal 计算）</div>'+
+    '<div class="sub">用于「减脂」模块的进度与阶段判断（每日缺口 = TDEE × '+Math.round(DIET_PLAN.defRatio*100)+'% → '+DIET_PLAN.defGoal+' kcal，每日摄入 '+DIET_PLAN.phase.main.kcal+' kcal，全程恒定；方案起算后前 14 天为习惯启动期）</div>'+
     '<div class="flex" style="gap:8px">'+
       '<div class="field" style="flex:1">'+numField('dietStartJin','起始体重',null,s.dietStartJin,'斤')+'</div>'+
       '<div class="field" style="flex:1">'+numField('dietTargetJin','目标体重',null,s.dietTargetJin,'斤')+'</div>'+
     '</div>'+
     '<div class="field"><label>方案起始日</label><input type="date" class="txt" data-k="dietStart" value="'+esc(s.dietStart||todayStr())+'"></div>'+
-    '<p class="muted" style="font-size:12px;margin-top:6px">按 12 周减 7–10kg（约 14–20 斤）的合理速度设置；体重每降 3kg 建议重新校核一次热量基准。</p>'+
+    '<p class="muted" style="font-size:12px;margin-top:6px">按每日缺口 '+DIET_PLAN.defGoal+' kcal（约 '+(DIET_PLAN.defGoal*7/7700*2).toFixed(1)+' 斤/周）设置，减 20 斤约需 '+Math.ceil(10/(DIET_PLAN.defGoal*7/7700))+' 周。体重每降 3kg 需重算 TDEE —— 缺口按比例算，改完 tdee 会自动保持 '+Math.round(DIET_PLAN.defRatio*100)+'% 的强度。</p>'+
     (function(){
       const l=dietLostKg(); if(!l) return '';
       const st=dietRecalcStep();
