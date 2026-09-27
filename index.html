@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#3b7dd8">
 <title>渡 · 自我蜕变每日成长工作台</title>
+<!-- v2.6 补齐 PWA：添加到主屏幕后显示「渡」的名称与图标，并以独立窗口打开 -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="渡">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
   :root{
     --bg:#e3effc; --card:rgba(255,255,255,0.68); --primary:#2f6cc0; --primary-soft:#e3eefc;
@@ -630,6 +638,17 @@
   .ib-stale{background:rgba(251,239,198,.6); border-left:3px solid #e0932f; border-radius:9px;
     padding:9px 11px; font-size:12px; color:#7a5d10; margin-bottom:10px; line-height:1.55;}
   .ib-stale b{color:#5e4709;}
+
+  /* —— v2.6 数据健康（存储占用 / 备份状态）—— */
+  .d-health{border:1px dashed #cfd8e3; border-radius:10px; padding:10px 12px; margin-bottom:12px;
+    background:#f7f9fc; font-size:12.5px; color:#2c3b4e; line-height:1.65;}
+  .d-health.warn{border-color:#e0a03a; background:rgba(251,239,198,.5);}
+  .d-health .hrow{display:flex; align-items:baseline; gap:6px; padding:2px 0; flex-wrap:wrap;}
+  .d-health .hrow>span:first-child{color:var(--muted); min-width:62px;}
+  /* —— v2.6 灵感来源状态条 —— */
+  .insp-src{background:#f7f9fc; border:1px solid #e3e8ee; border-radius:10px; padding:10px 12px;
+    margin-bottom:9px; font-size:12.5px; color:#3a4756; line-height:1.65;}
+  .insp-src b{color:#123a6b; font-weight:800;}
 </style>
 </head>
 <body>
@@ -674,6 +693,12 @@
 <script>
 /* ============ 数据层 ============ */
 const KEY='du_workbench_v2';
+/* ---------- v2.6 模块级状态 ----------
+   必须声明在 let store=load() 之前：let 有暂时性死区，
+   写在 load() 调用之后会让 load() 一进入就 ReferenceError。 */
+let lastSaveError=null;      /* 最近一次写入失败原因，供「数据健康」区展示 */
+let storageFreed=0;          /* 累计因配额自动清理而丢弃的条目数 */
+let corruptSnapshotKey=null; /* 原始数据解析失败时留存的现场快照 key */
 function def(){
   return {
     version:2,
@@ -723,16 +748,31 @@ function ensureV3(s){
   if(s.dietStartJin==null){ s.dietStartJin=170; ch=true; }
   if(s.dietTargetJin==null){ s.dietTargetJin=150; ch=true; }
   if(!s.dietStart){ s.dietStart=todayStr(); ch=true; }
+  /* v2.6：数据安全（上次备份时间）+ 灵感模块（是否尝试联网抓取） */
+  if(s.lastBackupAt==null){ s.lastBackupAt=0; ch=true; }
+  if(s.inspOnline==null){ s.inspOnline=false; ch=true; }
   return ch;
 }
 function load(){
-  try{const s=JSON.parse(localStorage.getItem(KEY)); if(s&&s.version>=2){
-    let ch=false;
-    if(migrateWeightToJin(s)) ch=true;
-    if(ensureV3(s)) ch=true;
-    if(ch) localStorage.setItem(KEY, JSON.stringify(s));
-    return s;
-  }}catch(e){}
+  /* 每次进入先复位：本次数据能正常解析时就不该继续提示「数据损坏」 */
+  corruptSnapshotKey=null;
+  const raw=localStorage.getItem(KEY);
+  if(raw){
+    try{
+      const s=JSON.parse(raw);
+      if(s&&s.version>=2){
+        let ch=false;
+        if(migrateWeightToJin(s)) ch=true;
+        if(ensureV3(s)) ch=true;
+        if(ch){ try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){ lastSaveError=e; } }
+        return s;
+      }
+    }catch(e){
+      /* 数据无法解析：先把现场原样留档再降级，避免「数据凭空消失」却无从追溯 */
+      try{ corruptSnapshotKey=KEY+'_corrupt_'+todayStr(); localStorage.setItem(corruptSnapshotKey, raw); }
+      catch(e2){ corruptSnapshotKey=null; }
+    }
+  }
   const d=def();
   try{
     const old=JSON.parse(localStorage.getItem('du_workbench_v1')||'null');
@@ -740,7 +780,49 @@ function load(){
   }catch(e){}
   return d;
 }
-function save(){ if(store.game&&!store.game.history) store.game.history={}; recordDay(); localStorage.setItem(KEY, JSON.stringify(store)); }
+/* ---------- v2.6 存储写入加固 ----------
+   原来 save() 直接 setItem 且无 try/catch：浏览器存储配额（约 5MB）写满时会抛
+   QuotaExceededError，异常一路抛到调用方，页面没有任何提示 —— 用户以为记录成功，
+   实际根本没落盘，刷新后数据回退。这里改为：先清理可再生的缓存，再重试；
+   仍然失败则明确告警并引导导出备份，绝不静默。 */
+function pruneCache(){
+  /* 灵感缓存是按日期累加的，长期不清理会慢慢吃满配额。只保留最近 2 天。 */
+  try{
+    const ks=Object.keys(store.cache||{}); if(ks.length<=2) return 0;
+    ks.sort(); const drop=ks.slice(0, ks.length-2);
+    drop.forEach(k=>{ delete store.cache[k]; });
+    return drop.length;
+  }catch(e){ return 0; }
+}
+function emergencyFree(s){
+  /* 逐级降级：先丢可再生的内容（灵感缓存 / 抓取时间戳），最后才动每日记录 */
+  let n=0;
+  if(s.cache&&Object.keys(s.cache).length){ n+=Object.keys(s.cache).length; s.cache={}; }
+  if(s.lastFetch&&Object.keys(s.lastFetch).length){ n+=Object.keys(s.lastFetch).length; s.lastFetch={}; }
+  const dk=Object.keys(s.days||{});
+  if(dk.length>400){ dk.sort(); const drop=dk.slice(0, dk.length-400); drop.forEach(k=>{ delete s.days[k]; }); n+=drop.length; }
+  return n;
+}
+function save(){
+  if(store.game&&!store.game.history) store.game.history={};
+  recordDay();
+  pruneCache();
+  try{
+    localStorage.setItem(KEY, JSON.stringify(store));
+    lastSaveError=null; return true;
+  }catch(e){ lastSaveError=e; }
+  /* 第一次失败：清掉可再生内容后重试，绝大多数溢出在这一步解决 */
+  try{
+    storageFreed+=emergencyFree(store);
+    localStorage.setItem(KEY, JSON.stringify(store));
+    lastSaveError=null;
+    try{ toast('存储空间偏紧，已自动清理历史灵感缓存'); }catch(_){}
+    return true;
+  }catch(e2){ lastSaveError=e2; }
+  /* 仍然失败：必须让用户知道，并立刻给出可执行动作 */
+  try{ toast('⚠️ 数据写入失败（存储已满），请立即到「我的」页导出备份'); }catch(_){}
+  return false;
+}
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function day(d){ d=d||todayStr(); if(!store.days[d]) store.days[d]={}; if(!store.days[d].expenses) store.days[d].expenses=[]; return store.days[d]; }
 function $(s){return document.querySelector(s);}
@@ -1874,7 +1956,7 @@ function renderGoalPage(g){
   html+='<div class="card"><h2>'+si('doc')+' '+G.reviewLabel+'</h2>'+
     '<textarea class="goalrev" id="goalRev" placeholder="'+G.reviewHint+'">'+esc(r[G.reviewKey]||'')+'</textarea>'+
     '<div class="muted" style="margin-top:6px">💡 “'+G.quote+'”</div></div>';
-  html+='<div class="card"><h2>'+si('bulb')+G.name+'灵感</h2><div class="sub">真实内容源抓取 · 可收藏 / 标记二创</div>'+
+  html+='<div class="card"><h2>'+si('bulb')+G.name+'灵感</h2><div class="sub">本地精选 · 可收藏 / 标记二创</div>'+
     '<div id="gi_'+G.channel+'"><div class="loading"><span class="spin"></span>加载灵感…</div></div>'+
     '<div class="flex" style="margin-top:8px"><button class="btn ghost sm" onclick="switchTab(\'insp\');selectChannel(\''+G.channel+'\')">'+si('arrow')+' 查看完整灵感库</button></div></div>';
   const p=$('#p-'+g); p.innerHTML=html; bindTodayInputs(p);
@@ -1885,8 +1967,11 @@ function renderGoalPage(g){
 
 /* ============ 饮水 / 记账 ============ */
 function expRow(i,e){
+  /* v2.6：分类缺失时原先会直接渲染出 "undefined"；且该字段未转义，
+     而支出数据可以经「导入备份」带入任意内容，故补默认值 + 转义。 */
+  const cat=(e&&e.cat)? e.cat : '未分类';
   return '<div class="expense-row" data-i="'+i+'">'+
-    '<span class="pill" style="background:#eef2f0;color:#47564f">'+e.cat+'</span>'+
+    '<span class="pill" style="background:#eef2f0;color:#47564f">'+esc(cat)+'</span>'+
     '<span>¥'+(+e.amt||0).toFixed(0)+'</span>'+
     '<span class="muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(e.note||'')+'</span>'+
     '<span class="del" onclick="delExpense('+i+')">×</span></div>';
@@ -1958,7 +2043,11 @@ function delWaterSlot(i){ store.settings.waterRemind.slots.splice(i,1); save(); 
 function addWaterSlot(){ store.settings.waterRemind.slots.push({time:'12:00',note:'喝水提醒',on:true}); save(); setReminders(); }
 function changeWaterSlot(i,v){ store.settings.waterRemind.slots[i].time=v; save(); }
 
-/* ============ 灵感专区 ============ */
+/* ============ 灵感专区 ============
+   注意：以下 CHANNELS 的内容源均为 reddit.com，且经由境外公共 CORS 代理
+   （api.allorigins.win）转发 —— 两者在中国大陆网络下都无法访问。
+   因此 v2.6 起默认走「本地精选库」（SEED），联网抓取需用户显式开启。
+   若要长期联网可用，应把 sources 换成境内可达且允许跨域的接口。 */
 const CHANNELS={
   fit:{name:'健身',icon:'run',sources:[
     {type:'reddit',url:'https://www.reddit.com/r/Fitness.json?limit=12'},
@@ -1978,15 +2067,49 @@ const CHANNELS={
   lyric:{name:'歌词',icon:'spark',sources:[]}
 };
 const SEED={
-  fit:[{title:'大基数减脂：先从“能坚持”开始',summary:'减脂核心是可持续的热量缺口。爬楼机对大体重更友好，先从每天20分钟起步，配合抗炎饮食（少糖少精碳、多蔬菜蛋白），比极端节食更稳。',tags:['减脂','爬楼机','抗炎饮食']},
-    {title:'毛囊炎友好型饮食思路',summary:'减少高糖高油摄入，增加富含锌、Omega-3的食物（深海鱼、南瓜籽），避免运动后汗液长时间停留，及时清洁背部。',tags:['毛囊炎','抗炎','饮食']}],
-  skin:[{title:'混油微敏痘印肌：分区护肤要点',summary:'T区控油、U区保湿。VC晨间抗氧化，传明酸+壬二酸针对痘印色沉，B5修护，最后修护乳封层。微敏肌刷酸从低浓度、低频开始。',tags:['分区护肤','痘印','成分']},
-    {title:'刷酸避坑：建立耐受再进阶',summary:'水杨酸/壬二酸先隔天使用，观察是否泛红刺痛。搭配舒缓类修护乳，严格防晒。切勿叠加多种酸类。',tags:['刷酸','避坑','修护']}],
-  /* 扩展点：体态矫正恢复时补回 posture 精选内容（久坐族体态自救 / 通勤穿搭等） */
-  english:[{title:'碎片化上班族英语：通勤听力法',summary:'通勤用播客/新闻做“盲听→看稿→跟读”三步。每天15分钟，比周末突击更高效。积累职场高频口语模板。',tags:['碎片化','听力','职场']},
-    {title:'短时高效记忆：主动回忆',summary:'学完立刻合上材料自测，比重复阅读记忆留存高数倍。用闪卡每天复习前日内容。',tags:['记忆','方法','效率']}],
-  finance:[{title:'上班族存钱：先付给自己',summary:'工资到账先转固定比例（如20%）到储蓄账户，再安排支出。自动转账减少冲动消费。',tags:['存钱','储蓄','自动化']},
-    {title:'日常节流：给“想要”设冷静期',summary:'非必需大额支出先记入清单，设48小时冷静期。多数冲动会自然消退，省下的就是存下的。',tags:['节流','消费','冷静期']}]
+  fit:[
+    {title:'大基数减脂：先从"能坚持"开始',summary:'减脂核心是可持续的热量缺口。爬楼机对大体重更友好，先从每天20分钟起步，配合抗炎饮食（少糖少精碳、多蔬菜蛋白），比极端节食更稳。',tags:['减脂','爬楼机','抗炎饮食']},
+    {title:'毛囊炎友好型饮食思路',summary:'减少高糖高油摄入，增加富含锌、Omega-3的食物（深海鱼、南瓜籽），避免运动后汗液长时间停留，及时清洁背部。',tags:['毛囊炎','抗炎','饮食']},
+    {title:'爬楼机三个最常见的错',summary:'①趴扶手——上半身重量压在扶手上，实际做功少 20–30%；②只踩前脚掌——小腿先累、踝关节压力大；③躯干前倾——腰椎代偿。正确做法：躯干直立、全脚掌踩实、步幅均匀，累了就降速而不是趴下去。',tags:['爬楼机','姿势','避坑']},
+    {title:'减脂期为什么必须吃够蛋白',summary:'热量缺口下，身体会同时分解脂肪和肌肉。蛋白吃到 1.6–2.2g/kg 体重，能在同样缺口下把肌肉流失压到最低。你的方案是 185g/天，运动后那一餐尤其不能省。',tags:['蛋白','保肌','宏量']},
+    {title:'平台期先排查这四件事',summary:'连续两周体重不动，别急着再砍热量——先依次检查：①是不是开始不做力量训练了；②睡眠是否长期不足 7 小时；③盐与碳水波动造成的水分掩盖；④体重其实在降但被单日波动盖住了，看 7 日均线。',tags:['平台期','排查','趋势']},
+    {title:'"能说话测试"比心率表更好用',summary:'有氧强度判断的土办法：能完整说出一句话但不能唱歌 ≈ 燃脂区；只能说三五个字就该降速；能顺畅聊天说明强度不够。爬楼机上不方便看表时，用这个判断最实用。',tags:['强度','有氧','RPE']},
+    {title:'减脂期外食：一日三档选择',summary:'避不开饭局时按档位点：最优——清蒸/白灼肉类 + 大量蔬菜 + 半碗米饭；其次——去皮鸡肉/牛肉，主食减半，菜过水；最差也要做到——不喝含糖饮料、不吃油炸、主食只吃一半。一顿不至于毁掉进度，别因为一顿就放弃一周。',tags:['外食','社交','执行']},
+    {title:'睡眠不足会直接削弱减脂效果',summary:'同样的热量缺口下，睡眠不足会升高皮质醇、增加饥饿感，减掉的体重里脂肪比例更低。目标是 23:30 前入睡、睡满 7 小时——这一项和工作台的"按时入睡"打卡是同一件事。',tags:['睡眠','皮质醇','恢复']}
+  ],
+  skin:[
+    {title:'混油微敏痘印肌：分区护肤要点',summary:'T区控油、U区保湿。VC晨间抗氧化，传明酸+壬二酸针对痘印色沉，B5修护，最后修护乳封层。微敏肌刷酸从低浓度、低频开始。',tags:['分区护肤','痘印','成分']},
+    {title:'刷酸避坑：建立耐受再进阶',summary:'水杨酸/壬二酸先隔天使用，观察是否泛红刺痛。搭配舒缓类修护乳，严格防晒。切勿叠加多种酸类。',tags:['刷酸','避坑','修护']},
+    {title:'VC 到底早上用还是晚上用',summary:'VC 主要价值是抗氧化——白天用它替皮肤挡紫外线产生的自由基，所以**白天用**更划算。但它不稳定，注意避光保存；微敏肌别一上来用高浓度原型 VC，先从温和衍生物试起。',tags:['VC','抗氧化','时机']},
+    {title:'传明酸 / 壬二酸 / B5 各管什么',summary:'传明酸——抑制黑色素信号，针对已形成的痘印色沉；壬二酸——抑菌控油 + 淡印，还能改善毛囊角化（对毛囊炎有帮助），但会刺痒；B5——纯修护保湿，不淡印但能兜住前两步的刺激。三者功能不重叠，别互相替代。',tags:['传明酸','壬二酸','B5']},
+    {title:'不防晒，痘印基本淡不掉',summary:'紫外线会持续刺激黑色素生成，一边用淡印精华一边不防晒，等于边倒水边漏水。硬防晒（帽子/伞）+ 防晒霜，用量要够：全脸约一元硬币大小。',tags:['防晒','痘印','前提']},
+    {title:'混油肌的"油"别用过度清洁治',summary:'频繁用强力洁面、一天洗三次脸，会破坏屏障 → 皮肤代偿性出更多油 → 更想洗，形成循环。早晚各一次温和洁面足够，控油靠壬二酸这类成分，不靠搓。',tags:['清洁','屏障','控油']},
+    {title:'护肤品叠加的顺序原则',summary:'通用顺序：水状→精华→乳→霜，质地由稀到稠。功效型（VC、酸类）放前面，修护封闭型放最后。同一时间别叠两种以上刺激性成分；不确定时，早上抗氧化、晚上修护，永远不吃亏。',tags:['顺序','叠加','原则']},
+    {title:'该停用的三个信号',summary:'出现任意一条就立刻停掉正在用的功效产品，回到洁面 + B5 + 修护乳：①持续泛红超过两天；②刺痛或灼热感不减；③脱皮伴随紧绷。屏障垮了，所有淡印进度都会倒退。',tags:['停用','屏障','警戒']}
+  ],
+  /* 扩展点：体态矫正恢复时补回 posture 精选内容（久坐族体态自救 / 通勤穿搭等），
+     并在 CHANNELS 里同步补回 posture 频道，localSeed 会自动生效 */
+  english:[
+    {title:'碎片化上班族英语：通勤听力法',summary:'通勤用播客/新闻做"盲听→看稿→跟读"三步。每天15分钟，比周末突击更高效。积累职场高频口语模板。',tags:['碎片化','听力','职场']},
+    {title:'短时高效记忆：主动回忆',summary:'学完立刻合上材料自测，比重复阅读记忆留存高数倍。用闪卡每天复习前日内容。',tags:['记忆','方法','效率']},
+    {title:'影子跟读怎么做才对',summary:'选一段 30–60 秒的音频，落后半句跟着说，尽量复刻语调、连读和停顿——不是听一句停一句地重复。难点不在词汇，在节奏。每天 10 分钟，两周后开口会明显顺。',tags:['跟读','口语','方法']},
+    {title:'卡壳时的万能句型',summary:'背熟这几句，口语立刻少一半尴尬："Let me think for a second."（我思考一下）｜"How do you say this in English…"（这个怎么说）｜"Let me rephrase that."（我换个说法）｜"That is a good question."（争取时间）。',tags:['句型','应急','口语']},
+    {title:'每天 15 分钟怎么分配',summary:'5 分钟听力（通勤盲听）+ 5 分钟跟读（找一段短音频）+ 5 分钟输出（用今天学的词说三句自己的事，录音回听）。输入和输出必须成对出现，只输入不输出，开口能力不会涨。',tags:['计划','分配','输入输出']},
+    {title:'用输出倒逼输入',summary:'给自己一个每周任务：用英语讲清楚一件本周发生的事，60 秒，录音。讲不出来时缺什么就补什么——这个方法比背单词表更能筛出真正该学的东西。',tags:['输出','倒逼','方法']},
+    {title:'别只背单词表，用"词块"记',summary:'母语者说话是按块调用的，不是逐词拼。记 "make a decision" 而不是 decision=决定；记 "catch up on sleep" 而不是 catch=抓住。词块能直接搬到嘴里用，单词表不能。',tags:['词块','词汇','效率']},
+    {title:'怎么把学到的用进工作',summary:'把每天学到的一个表达，当天用在邮件或消息里（哪怕只在心里造一句）。用过的表达才属于你。工作台的"英语口语"打卡不是任务本身，是提醒你今天就开口。',tags:['应用','职场','迁移']}
+  ],
+  finance:[
+    {title:'上班族存钱：先付给自己',summary:'工资到账先转固定比例（如20%）到储蓄账户，再安排支出。自动转账减少冲动消费。',tags:['存钱','储蓄','自动化']},
+    {title:'日常节流：给"想要"设冷静期',summary:'非必需大额支出先记入清单，设48小时冷静期。多数冲动会自然消退，省下的就是存下的。',tags:['节流','消费','冷静期']},
+    {title:'记账的意义不是省钱，是看清',summary:'记账解决的是"不知道钱去哪了"。第一个月不用改任何习惯，只记录；第二个月看报表，你会自动找到最该砍的那一项——通常不是你以为的那一项。',tags:['记账','复盘','洞察']},
+    {title:'三账户法：让存钱不靠意志力',summary:'①日常账户——吃饭交通房租；②储蓄账户——工资到账先转 20%，平时不看不碰；③缓冲账户——应急金，放 1–3 个月开支，只在真意外时动。把钱分开放，比每次下单前做道德挣扎有效得多。',tags:['账户','结构','自动化']},
+    {title:'别在情绪差的时候做消费决定',summary:'疲惫、饿、生气、深夜——这四种状态下下单，退货率和后悔率都明显更高。规则很简单：非必需的东西，先记进收集箱，不在当天买。',tags:['情绪','消费','规则']},
+    {title:'大额支出先做"时薪换算"',summary:'把价格换成工作时间：一件 1200 元的物品，按时薪 50 元算，等于 24 小时。再问自己一句"我愿意为它上三天班吗"。这个换算对 500 元以上的消费特别有效。',tags:['决策','换算','大额']},
+    {title:'应急金先存够一个月',summary:'多数理财建议会给到 3–6 个月，但对刚开始的人，目标定太高会直接放弃。先存够 1 个月开支，你会立刻感到安全感的差别，再往上加就容易了。',tags:['应急金','起步','安全垫']},
+    {title:'省钱不该是唯一目标',summary:'只盯着省钱会让人把生活质量压到极低，然后一次性反弹。更稳的结构是：固定储蓄比例 20%，剩下的该花的照常花——预算里留一笔"随便花"的钱，长期执行率反而更高。',tags:['预算','可持续','心态']}
+  ],
+  lyric:[]
 };
 const XUE=[
   {t:'该配合你演出的我演视而不见',s:'演员'},
@@ -2050,21 +2173,37 @@ function dailyXue(){ const base=Math.floor(Date.now()/86400000)%XUE.length; cons
 function rotateXue(){ xueIdx=(xueIdx==null?0:xueIdx)+1; renderOverview(); }
 let curChannel='fit';
 function renderInsp(){
-  let html='<div class="card"><h2>'+si('bulb')+'灵感搜集专区</h2><div class="sub">真实内容源每日抓取 · 可收藏 / 标记二创 / 绑定个人经历</div></div>';
+  let html='<div class="card"><h2>'+si('bulb')+'灵感搜集专区</h2><div class="sub">本地精选内容库 · 可收藏 / 标记二创 / 绑定个人经历</div></div>';
   let tabs='<div class="insp-tabs">'+Object.keys(CHANNELS).map(k=>'<span class="t '+(k===curChannel?'on':'')+'" onclick="selectChannel(\''+k+'\')">'+si(CHANNELS[k].icon)+CHANNELS[k].name+'</span>').join('');
   tabs+='<span class="t" onclick="openSaved()">'+si('star')+' 我的收藏</span></div>';
   html+=tabs;
-  html+='<div id="inspBody"><div class="loading"><span class="spin"></span>正在从内容源抓取灵感…</div></div>';
+  const online=!!store.settings.inspOnline;
+  html+='<div class="insp-src"><b>当前内容来源：'+(online?'联网抓取':'本地精选库（离线可用、秒开）')+'</b><br>'+
+    (online? '内容源为 reddit 等<b>境外站点</b>，国内网络通常无法访问；失败会自动回落本地精选，不会白屏。'
+           : '内置 '+((SEED.fit||[]).length)+' 条/频道的实操精选，不依赖网络。若你处在可访问境外的网络，可切换为联网抓取。')+
+    '<div style="margin-top:7px"><button class="btn ghost sm" onclick="toggleInspOnline()">'+
+    (online? '切回本地精选' : '尝试联网抓取')+'</button></div></div>';
+  html+='<div id="inspBody"><div class="loading"><span class="spin"></span>加载内容…</div></div>';
   $('#p-insp').innerHTML=html;
   loadChannel(curChannel,true);
 }
 function selectChannel(k){ curChannel=k; renderInsp(); }
+function toggleInspOnline(){
+  store.settings.inspOnline=!store.settings.inspOnline; save(); renderInsp();
+  toast(store.settings.inspOnline? '已开启联网抓取（境外源，国内可能失败）' : '已切回本地精选库');
+}
+/* 本地精选：任何频道都能秒出内容，不依赖网络（离线优先的唯一来源） */
+function localSeed(k){ return (SEED[k]||[]).map((x,i)=>Object.assign({},x,{seed:true,id:'seed_'+k+'_'+i})); }
 async function loadChannel(k,auto,force){
   const cache=store.cache[todayStr()]||(store.cache[todayStr()]={});
-  if(!force && cache[k] && cache[k].length && !auto){ renderInspCards(k,cache[k]); return; }
-  if(!force && store.lastFetch[k] && (Date.now()-store.lastFetch[k]<30*60*1000) && cache[k]){ renderInspCards(k,cache[k]); return; }
-  const body=$('#inspBody'); if(body) body.innerHTML='<div class="loading"><span class="spin"></span>正在从内容源抓取灵感…</div>';
-  const items=await fetchChannel(k);
+  if(!force && cache[k] && cache[k].length){ renderInspCards(k,cache[k]); return; }
+  /* v2.6：默认直接给本地精选（秒出、不再空转等待境外源超时）；
+     只有用户显式开启联网抓取时才发起请求，失败自动回落。 */
+  if(!force && !store.settings.inspOnline){ renderInspCards(k,localSeed(k)); return; }
+  const body=$('#inspBody'); if(body) body.innerHTML='<div class="loading"><span class="spin"></span>正在尝试联网抓取（境外源，可能较慢或超时）…</div>';
+  let items=[];
+  try{ items=await fetchChannel(k); }catch(e){ items=[]; }
+  if(!items.length) items=localSeed(k);
   cache[k]=items; store.cache[todayStr()]=cache; store.lastFetch[k]=Date.now(); save();
   renderInspCards(k,items);
 }
@@ -2080,7 +2219,7 @@ async function fetchChannel(k){
     }catch(e){ }
     if(out.length>=10) break;
   }
-  if(!out.length) out=SEED[k].map(x=>({...x,seed:true,id:'seed_'+Math.random().toString(36).slice(2)}));
+  if(!out.length) out=localSeed(k);
   out=out.map((x,i)=>({...x,id:x.id||(k+'_'+i+'_'+Date.now())}));
   return out.slice(0,14);
 }
@@ -2122,7 +2261,7 @@ function renderInspCardsInto(el,k,items){
       '</div></div>';
   });
   if(!items.length) html='<div class="empty">'+si('bulb')+'暂无内容，稍后重试或检查网络</div>';
-  html+='<div class="flex" style="margin:6px 0 4px"><button class="btn ghost sm" onclick="refreshGoalInsp(\''+k+'\')">'+si('refresh')+' 重新抓取</button></div>';
+  html+='<div class="flex" style="margin:6px 0 4px"><button class="btn ghost sm" onclick="refreshGoalInsp(\''+k+'\')">'+si('refresh')+' 换一批 / 重新抓取</button></div>';
   el.innerHTML=html;
 }
 async function loadInspInto(el,k,force){
@@ -2130,8 +2269,11 @@ async function loadInspInto(el,k,force){
   const cache=store.cache[todayStr()]||(store.cache[todayStr()]={});
   if(!force && cache[k] && cache[k].length){ renderInspCardsInto(el,k,cache[k]); return; }
   if(!force && store.lastFetch[k] && Date.now()-store.lastFetch[k]<30*60*1000 && cache[k]){ renderInspCardsInto(el,k,cache[k]); return; }
-  el.innerHTML='<div class="loading"><span class="spin"></span>正在从内容源抓取灵感…</div>';
-  const items=await fetchChannel(k);
+  if(!store.settings.inspOnline){ renderInspCardsInto(el,k,localSeed(k)); return; }
+  el.innerHTML='<div class="loading"><span class="spin"></span>正在尝试联网抓取…</div>';
+  let items=[];
+  try{ items=await fetchChannel(k); }catch(e){ items=[]; }
+  if(!items.length) items=localSeed(k);
   cache[k]=items; store.cache[todayStr()]=cache; store.lastFetch[k]=Date.now(); save();
   renderInspCardsInto(el,k,items);
 }
@@ -3250,7 +3392,79 @@ function sendChat(){
   chatMsgs.push({role:'ai',text:reply});
   renderChat();
 }
+/* v2.6：先尝试用「真实打卡数据」回答，答不上来再回落到固定模板。
+   原实现是纯关键词匹配，完全不读工作台里已有的数据，问「今天练什么」也只给通用模板。 */
+function aiDataAnswer(q){
+  const t=todayStr(), d=store.days[t]||{}, S=store.settings;
+  const has=(...ws)=>ws.some(w=>q.indexOf(w)>=0);
+  const plain=x=>String(x||'').replace(/<[^>]+>/g,'');
+
+  /* ① 今日进度 / 还差什么 */
+  if(has('今天完成','完成了吗','完成度','今日进度','今天怎么样','今日情况','还差什么','还剩什么','还有什么没','今天做了')){
+    const qs=dailyQuests(); const done=qs.filter(x=>x.done).length;
+    const left=qs.filter(x=>!x.done).map(x=>x.name);
+    const td=(store.todos||[]);
+    let r='【今日进度】已完成 '+done+'/'+qs.length+' 项'+(qs.length? '（'+Math.round(done/qs.length*100)+'%）':'')+'。';
+    r+=(left.length? '\n还差：'+left.join('、')+'。' : '\n今天的打卡项全部完成，收工。');
+    if(td.length) r+='\n待办 '+td.filter(x=>x.done).length+'/'+td.length+'：'+(td.filter(x=>!x.done).map(x=>x.text).slice(0,3).join('、')||'已全部完成')+'。';
+    r+='\n训练 '+(+d.diet_min? d.diet_min+' 分钟'+(d.diet_mode? '（'+d.diet_mode+'）':'') : '未记录')+
+       '｜摄入 '+(+d.diet_kcal? d.diet_kcal+' kcal' : '未记录')+
+       '｜睡眠 '+(sleepHours(d)? sleepHours(d).toFixed(1)+' 小时' : '未记录')+'。';
+    return r;
+  }
+
+  /* ② 减脂当日剩余额度 */
+  if(has('还差多少','还能吃','剩余额度','额度','吃够了吗','蛋白够','今天吃了多少','热量还差')){
+    const ph=dietPhase(), kcal=+d.diet_kcal||0, p=+d.diet_p||0;
+    let r='【'+ph.name+'】今日目标 '+ph.kcal+' kcal（热量缺口 '+ph.def+'），蛋白 '+DIET_PLAN.macro.p+'g。';
+    if(!kcal&&!p) return r+'\n今天还没有记录摄入。吃了就记一笔，工作台的达成环会实时告诉你还差多少。';
+    r+='\n已摄入 '+kcal+' kcal，距目标还差 '+(ph.kcal-kcal)+' kcal；蛋白 '+p+'g，还差 '+Math.max(0,DIET_PLAN.macro.p-p)+'g。';
+    r+='\n判定：'+plain(intakeStatus(kcal,ph).t);
+    if(kcal<DIET_PLAN.floor) r+='\n注意：已跌破安全下限 '+DIET_PLAN.floor+' kcal，这一档掉的是肌肉和代谢，不要再往下压。';
+    return r;
+  }
+
+  /* ③ 体重与趋势 */
+  if(has('体重','减了多少','瘦了','轻了','多重','多少斤')){
+    const l=dietLostKg();
+    if(!l) return '还没有体重记录。建议晨起排便后、空腹、穿同样的衣服称，记到「减脂」页。体重是单项波动最大的指标，看 7 日均线不看单点。';
+    const tgt=+(S.dietTargetJin||150);
+    let r='【体重】最新 '+l.latest+' 斤，起始 '+l.start+' 斤，'+
+      (l.kg>=0? '累计已减 '+l.kg.toFixed(1)+' kg' : '较起始上升 '+Math.abs(l.kg).toFixed(1)+' kg')+'。';
+    r+='\n距目标 '+tgt+' 斤还差 '+Math.max(0,(l.latest-tgt)).toFixed(1)+' 斤。';
+    if(l.kg>=3) r+='\n已减超过 3kg：建议把设置里的「起始体重」更新为 '+l.latest+' 斤，并按提示重新校核热量基准（约下调 '+(dietRecalcStep()*80)+' kcal）。';
+    return r;
+  }
+
+  /* ④ 今天练什么 */
+  if(has('今天怎么练','今天练什么','练什么','训练计划','今天运动','要不要练')){
+    const i=(new Date().getDay()+6)%7, pl=DIET_PLAN.train.plan[i];
+    const names=['周一','周二','周三','周四','周五','周六','周日'];
+    if(!pl) return '【'+names[i]+'】今天是休息日。休息不是偷懒——减脂效果有一半是在休息日兑现的。\n可以做 20–30 分钟散步（日常活动消耗），别安排高强度。';
+    const itv=(pl.n.indexOf('间歇')>=0||pl.n.indexOf('变速')>=0);
+    return '【'+names[i]+'】'+pl.n+' '+pl.m+' 分钟，心率区间 '+(itv? DIET_PLAN.hr.aero : DIET_PLAN.hr.burn)+' 次/分。\n'+
+      '要点：躯干直立、别趴扶手、全脚掌踩实（趴扶手实际做功少 20–30%）。\n'+
+      '练后 30–60 分钟内吃加餐（'+DIET_PLAN.meals[2].kcal+' kcal / 蛋白 '+DIET_PLAN.meals[2].p+'g），这个窗口别省。\n'+
+      '结束后拉伸重点：小腿 + 髂腰肌。'+
+      (+d.diet_min? '\n今日已记录 '+d.diet_min+' 分钟，还差 '+Math.max(0,pl.m-(+d.diet_min))+' 分钟。' : '');
+  }
+
+  /* ⑤ 本月收支 */
+  if(has('花了多少','这个月花','支出','省了','存了多少','预算','记账')){
+    const ym=todayStr().slice(0,7); let exp=0, sv=0, n=0;
+    Object.keys(store.days||{}).forEach(k=>{ if(k.slice(0,7)!==ym) return; n++;
+      const dd=store.days[k]||{};
+      exp+=(dd.expenses||[]).reduce((a,e)=>a+(+e.amt||0),0);
+      sv+=(+dd.save_today||0); });
+    const tgt=+(S.monthlySavings||2000);
+    return '【本月】已记录 '+n+' 天：支出 ¥'+exp.toFixed(0)+'，储蓄 ¥'+sv.toFixed(0)+
+      '（目标 ¥'+tgt+'，完成 '+Math.min(100,Math.round(sv/(tgt||1)*100))+'%）。\n'+
+      (sv>=tgt? '这个月的储蓄目标已经达成。' : '距目标还差 ¥'+Math.max(0,tgt-sv).toFixed(0)+'。最有效的动作是「先付给自己」：钱一到账先转走 20%，剩下的再安排支出。');
+  }
+  return null;
+}
 function aiReply(q){
+  const _data=aiDataAnswer(q); if(_data) return _data;
   q=q.toLowerCase();
   if(q.indexOf('训练')>=0||q.indexOf('健身')>=0||q.indexOf('运动')>=0){
     return '今天的训练建议（以爬楼机为主）：\n\n1. 热身 5 分钟（关节活动+快走）\n2. 爬楼机 30-40 分钟，保持能说话但不能唱歌的强度\n3. 核心 10 分钟：平板支撑 3×40s、卷腹 3×15\n4. 拉伸 5 分钟\n\n大体重阶段先从 20 分钟起步，每周+5 分钟。记得运动前喝点水，运动后补充蛋白质。要我记到今日健身清单吗？';
@@ -3636,6 +3850,15 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v2.6',date:'2026-09-27',items:[
+      '修复一处会「静默丢数据」的隐患：存储写入原先没有异常兜底，浏览器存储写满时会抛错且页面无任何提示 —— 数据看着记录成功、实际没落盘，刷新即回退。现在改为逐级降级（先清理可再生缓存）后重试，仍失败会明确告警并引导导出备份',
+      '修复灵感缓存按日期累积、永不清理的问题：长期使用会持续吃满存储配额，最终触发上面的写入失败。现在只保留最近 2 天缓存',
+      '新增数据损坏保护：本地数据无法解析时，先把原始内容原样留档再降级，避免「数据凭空消失」却无从追溯',
+      '设置页新增「数据健康」：显示存储占用与上次备份距今天数；从未备份或超过 7 天未备份时醒目提醒，并记录每次导出的时间',
+      '修正灵感模块：内容源全部为境外站点（reddit + 境外代理），国内无法访问，页面却仍宣称「每日抓取」并在进入时空转等待。现改为离线优先 —— 进入即出本地精选，精选内容由每频道 2 条扩充至 8 条；联网抓取改为可选开关并明确标注',
+      'AI 帮手接入真实数据：此前只做关键词匹配、返回固定话术，完全没读工作台里已有的数据。现在可回答今日进度与待办、减脂剩余热量与蛋白额度、体重变化与距目标差距、今日该练什么、本月收支与储蓄进度',
+      '补齐 PWA 能力：新增 manifest 与图标，添加到主屏幕后显示「渡」的名称与图标，并以独立窗口打开'
+    ]},
     {ver:'v2.5',date:'2026-09-27',items:[
       '报表页重构：由「9 个裸数字平铺、零趋势图」改为四组统计（训练 / 饮食与身体 / 日常习惯 / 财务），每个指标都带分母或目标参照，并用颜色标出达标・需注意・不达标——原版「训练天数 5」看不出是 7 天里的 5 天，也没有任何可比基准',
       '报表新增「近 7 天趋势」迷你折线（训练时长 / 摄入热量 / 睡眠 / 支出），带橙色参照虚线；缺失值保留横轴占位不连线，曲线不会因漏打卡而「假装下降」',
@@ -3725,7 +3948,7 @@ function renderMe(){
       return '<p class="muted" style="font-size:12px;margin-top:6px">当前累计变化 <b>'+l.kg.toFixed(1)+' kg</b>'+
         (l.kg>=0? '，再降 <b>'+(3-l.kg).toFixed(1)+' kg</b> 就需要重新校核基准。' : '（较起始上升），先回到执行度上。')+'</p>';
     })()+'</div>';
-  html+='<div class="card"><h2>'+si('doc')+'数据管理</h2><div class="flex wrap" style="gap:8px">'+
+  html+='<div class="card"><h2>'+si('doc')+'数据管理</h2>'+dataHealthHtml()+'<div class="flex wrap" style="gap:8px">'+
     '<button class="btn ghost sm" onclick="exportData()">'+si('arrow')+' 导出备份(JSON)</button>'+
     '<button class="btn ghost sm" onclick="importData()">导入备份</button>'+
     '<button class="btn danger sm" onclick="resetData()">清空全部数据</button></div>'+
@@ -3745,12 +3968,39 @@ function renderMe(){
   p.querySelectorAll('input.num').forEach(i=>i.addEventListener('input',e=>{ s[i.dataset.k]=+i.value||0; }));
   const al=$('#aliasInp'); if(al) al.addEventListener('input',()=>{ store.game.alias=al.value; });
 }
+/* v2.6 数据健康：把「数据只在本机」这件事变成看得见的指标 + 明确的行动提示 */
+function storageInfo(){
+  let bytes=0;
+  try{ const raw=localStorage.getItem(KEY)||''; bytes=raw.length*2; }catch(e){}
+  const quota=5*1024*1024;
+  return {bytes:bytes, quota:quota, pct:Math.min(100, bytes/quota*100)};
+}
+function hasRealData(){
+  try{ return Object.keys(store.days||{}).length>0 || (store.todos||[]).length>0 || Object.keys(store.reviews||{}).length>0; }
+  catch(e){ return false; }
+}
+function dataHealthHtml(){
+  const inf=storageInfo();
+  const days=store.settings.lastBackupAt? Math.floor((Date.now()-store.settings.lastBackupAt)/86400000) : null;
+  const warn=(days===null&&hasRealData()) || (days!==null&&days>=7) || inf.pct>=80 || !!lastSaveError || !!corruptSnapshotKey;
+  let h='<div class="d-health'+(warn?' warn':'')+'">';
+  h+='<div class="hrow"><span>存储占用</span><b class="d-ink">'+(inf.bytes/1024).toFixed(0)+' KB</b><span class="muted">／上限约 5 MB（'+inf.pct.toFixed(1)+'%）</span></div>';
+  h+='<div class="hrow"><span>上次备份</span>'+(days===null? '<b class="d-ink" style="color:#b4552c">从未备份</b>' : '<b class="d-ink">'+days+' 天前</b>')+'</div>';
+  if(lastSaveError) h+='<div class="d-warn" style="margin-top:8px">⚠️ 上次写入本地存储失败（多为存储已满）。请立即导出备份，并清理浏览器中本站的存储。</div>';
+  if(corruptSnapshotKey) h+='<div class="d-warn" style="margin-top:8px">检测到一份无法解析的历史数据，已原样留档。若需排查，可在浏览器控制台执行 localStorage.getItem(\''+corruptSnapshotKey+'\')。</div>';
+  if(warn && !lastSaveError && !corruptSnapshotKey)
+    h+='<div class="d-warn" style="margin-top:8px">⚠️ '+(days===null? '还没有导出过备份。' : '已经 '+days+' 天没有备份了。')+
+       '数据只保存在这台设备的浏览器里，清理浏览器缓存或数据会全部丢失且无法找回。建议现在就导出一次。</div>';
+  else if(!warn) h+='<p class="muted" style="font-size:12px;margin-top:6px">✓ 备份状态良好（建议每 7 天导出一次）。</p>';
+  return h+'</div>';
+}
 function saveSettings(){ save(); toast('设置已保存'); }
 function addRSS(){ const ch=$('#rssCh').value, url=$('#rssUrl').value.trim();
   if(!url){toast('请输入RSS链接');return;} store.settings.customRSS.push({channel:ch,url}); save(); renderMe(); toast('已添加内容源'); }
 function delRSS(i){ store.settings.customRSS.splice(i,1); save(); renderMe(); }
 function exportData(){ const blob=new Blob([JSON.stringify(store,null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='du-backup-'+todayStr()+'.json'; a.click(); toast('已导出备份'); }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='du-backup-'+todayStr()+'.json'; a.click();
+  store.settings.lastBackupAt=Date.now(); save(); renderMe(); toast('已导出备份，备份时间已记录'); }
 function importData(){ $('#impFile').click(); }
 function doImport(inp){ const f=inp.files[0]; if(!f)return; const rd=new FileReader();
   rd.onload=()=>{ try{ mergeOrReplaceStore(JSON.parse(rd.result)); }catch(e){toast('文件格式错误');} };
@@ -3759,19 +4009,40 @@ function resetData(){ if(confirm('确定清空全部本地数据？此操作不�
 function exportText(){ try{
   const txt=btoa(unescape(encodeURIComponent(JSON.stringify(store))));
   const ta=$('#migrateText'); ta.value=txt; ta.focus(); ta.select();
-  document.execCommand('copy'); toast('已复制，去微信发给自己'); }
+  document.execCommand('copy');
+  store.settings.lastBackupAt=Date.now(); save();
+  toast('已复制，去微信发给自己'); }
   catch(e){ $('#migrateText').value=btoa(unescape(encodeURIComponent(JSON.stringify(store)))); toast('已生成，请手动复制'); } }
 function importText(){ const t=$('#migrateText').value.trim(); if(!t){toast('请先粘贴文本');return;}
   try{ mergeOrReplaceStore(JSON.parse(decodeURIComponent(escape(atob(t))))); }
   catch(e){ toast('文本格式错误'); } }
+/* v2.6：导入的备份可能来自旧版本或经过人工编辑，字段未必齐全。
+   原先直接 store=s，一旦缺少 days 之类的容器，save() 里的 recordDay() 会立刻抛错，
+   表现为「导入后白屏 / 数据全丢」。这里先把结构补齐再替换。 */
+function normalizeImported(src){
+  const d=def(), s=src||{};
+  const out=Object.assign({}, d, s);
+  out.version=2;
+  out.settings=Object.assign({}, d.settings, s.settings||{});
+  out.days=(s.days && typeof s.days==='object' && !Array.isArray(s.days))? s.days : {};
+  ['reviews','reminders','cache','lastFetch'].forEach(k=>{ if(!out[k]||typeof out[k]!=='object'||Array.isArray(out[k])) out[k]=d[k]; });
+  ['todos','inbox','goals','meds','tips'].forEach(k=>{ if(!Array.isArray(out[k])) out[k]=[]; });
+  if(!out.inspiration||typeof out.inspiration!=='object') out.inspiration={saved:[]};
+  if(!Array.isArray(out.inspiration.saved)) out.inspiration.saved=[];
+  if(!out.game||typeof out.game!=='object') out.game=d.game;
+  if(!out.game.history||typeof out.game.history!=='object') out.game.history={};
+  ensureV3(out);
+  return out;
+}
 function mergeOrReplaceStore(s){
   if(!s||!s.version){ toast('文本无效'); return; }
-  if(s._importMode==='mergeDays' && s.days){
+  if(s._importMode==='mergeDays' && s.days && typeof s.days==='object'){
     Object.assign(store.days, s.days);
     if(s._w2j!=null) store._w2j=s._w2j;
     save(); renderMe(); toast('已合并 '+Object.keys(s.days).length+' 天体重数据'); return;
   }
-  store=s; save(); renderMe(); toast('已恢复全部数据');
+  store=normalizeImported(s);
+  save(); renderMe(); toast('已恢复全部数据（缺省字段已自动补齐）');
 }
 
 /* ============ 启动 ============ */
