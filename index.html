@@ -551,6 +551,36 @@
   .d-cmp .cv{font-size:12px; text-align:right; color:#0f3568; font-weight:800; white-space:nowrap; line-height:1.35;}
   .d-cmp .cv small{font-weight:400; color:var(--muted); font-size:10.5px;}
   .d-cmp.hi .cl{color:#0f3568; font-weight:800;}
+  /* ===== 减脂 v2.9：食材换算 · 餐盘 ===== */
+  .fx-tabs{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;}
+  .fx-tab{font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid var(--line);
+    background:rgba(255,255,255,.6); color:#38506f; cursor:pointer;}
+  .fx-tab.on{background:var(--primary); border-color:var(--primary); color:#fff; font-weight:800;}
+  .fx-panel{background:rgba(255,255,255,.5); border:1px solid var(--line); border-radius:11px;
+    padding:9px 10px; margin-top:4px;}
+  .fx-row{padding:6px 0; border-bottom:1px dashed var(--line);}
+  .fx-l1{display:grid; grid-template-columns:1fr 56px 12px 16px; gap:6px; align-items:center;}
+  .fx-l1 .fx-n{font-size:12.5px; color:#0f3568; font-weight:700; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap;}
+  .fx-l1 .fx-u{font-size:11px; color:var(--muted);}
+  .fx-l1 input.fx-g{width:100%; padding:3px 4px; font-size:12px; text-align:center; border-radius:6px;
+    border:1px solid var(--line); background:#fff; color:#0f3568;}
+  .fx-m{margin-top:3px; font-size:11.5px; color:#38506f; text-align:right; line-height:1.5;}
+  .fx-m small{color:var(--muted); font-size:10.5px;}
+  .fx-tot{margin-top:7px;}
+  .fx-line{display:flex; gap:8px; align-items:baseline; font-size:12.5px; padding:2px 0;}
+  .fx-line .fx-lab{color:var(--muted); min-width:56px; font-size:11.5px;}
+  .fx-line .fx-v{font-weight:800; color:#0f3568; min-width:60px;}
+  .fx-line .fx-v2{font-size:11.5px; color:#38506f;}
+  .fx-solve{margin-top:9px; padding:9px 10px; border-radius:11px; background:rgba(227,238,252,.6);}
+  .fx-srow{display:flex; align-items:center; gap:8px; font-size:12.5px; color:#123a6b;}
+  .fx-sel{flex:1; padding:4px 6px; font-size:12px; border-radius:7px; border:1px solid var(--line);}
+  .fx-sres{display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:6px; font-size:12px; color:#123a6b;}
+  .fx-sres b{color:#0f3568;}
+  .fx-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(138px,1fr)); gap:6px;}
+  .fx-btn{text-align:left; padding:7px 9px; border-radius:10px; border:1px solid var(--line);
+    background:rgba(255,255,255,.62); cursor:pointer; font-size:12.5px; color:#0f3568; font-weight:700;}
+  .fx-btn em{display:block; font-style:normal; font-size:10.5px; color:var(--muted); font-weight:400; margin-top:2px;}
   .d-cmp.hi .ct{background:rgba(47,108,192,.14);}
   .d-why{font-size:11.5px; color:var(--muted); line-height:1.7; margin-top:10px;}
   .d-why b{color:#0f3568;}
@@ -1795,6 +1825,206 @@ function dietRecalcStep(){
   return (r&&r.kg>=3)? Math.floor(r.kg/3) : 0;
 }
 
+/* ============ 食材换算 · 餐盘（v2.9 新增）============
+   解决的实际问题：配餐时「这个该吃多少克」要手算，而生熟、单位换算极易出错。
+   本工具把全部食材统一成「每 100g 可食部」一个口径，提供两个方向：
+     ① 正算：点食材 → 进餐盘 → 改克数 → 实时出热量与三大宏量，并与当餐目标对账；
+     ② 反算：拿当前餐次「还剩的额度」反推某种食材还能吃多少克。
+   数据来源：《中国食物成分表（标准版 第6版）》为主；包装食品（浓醇豆浆、每日坚果、
+   蛋白粉）取包装标示值。主食一律标注生重 —— 同样 100g，生米 346 kcal 而熟饭只有
+   116 kcal，这是配餐最常踩的坑。
+   注意：kcal 与 4p+9f+4c 会有 2%~12% 的固有偏差（膳食纤维按 2 kcal/g 计，而碳水项
+   按 4 kcal/g 收录），这是成分表本身的取整方式，不是数据错误。 */
+const FOOD_DB=[
+  {k:'egg',   n:'鸡蛋（全蛋）',   cat:'蛋白', kcal:144, p:13.3, f:8.8,  c:2.8,  u:{n:'个',g:60}, note:'1 个（大）≈ 60g'},
+  {k:'eggw',  n:'蛋清',           cat:'蛋白', kcal:60,  p:11.6, f:0.1,  c:3.1,  u:{n:'个',g:33}, note:'1 个蛋清 ≈ 33g'},
+  {k:'chick', n:'鸡胸肉（生）',   cat:'蛋白', kcal:133, p:19.4, f:5.0,  c:2.5},
+  {k:'beef',  n:'瘦牛肉（生）',   cat:'蛋白', kcal:106, p:20.2, f:2.3,  c:1.2},
+  {k:'shrimp',n:'虾仁（生）',     cat:'蛋白', kcal:93,  p:18.6, f:0.8,  c:2.8},
+  {k:'fish',  n:'巴沙鱼',         cat:'蛋白', kcal:80,  p:15.0, f:2.0,  c:0.5},
+  {k:'tofu',  n:'北豆腐',         cat:'蛋白', kcal:116, p:12.2, f:4.8,  c:4.2},
+  {k:'soy',   n:'豆浆（无糖）',   cat:'蛋白', kcal:31,  p:3.0,  f:1.6,  c:1.2,  u:{n:'杯',g:250}},
+  {k:'soy2',  n:'悠白浓醇豆浆',   cat:'蛋白', kcal:62,  p:5.4,  f:3.2,  c:2.9,  note:'包装标示值'},
+  {k:'milk0', n:'脱脂牛奶',       cat:'蛋白', kcal:34,  p:3.4,  f:0.3,  c:5.0,  u:{n:'盒',g:250}},
+  {k:'milk',  n:'全脂牛奶',       cat:'蛋白', kcal:65,  p:3.2,  f:3.6,  c:4.9,  u:{n:'盒',g:250}},
+  {k:'yog',   n:'无糖希腊酸奶',   cat:'蛋白', kcal:59,  p:10.0, f:0.4,  c:3.6},
+  {k:'whey',  n:'乳清蛋白粉',     cat:'蛋白', kcal:389, p:78.0, f:5.0,  c:8.0,  u:{n:'勺',g:30}, note:'1 勺 ≈ 30g'},
+
+  {k:'pse',   n:'紫薯（生）',     cat:'主食', kcal:86,  p:1.6,  f:0.2,  c:20.1},
+  {k:'swe',   n:'红薯（生）',     cat:'主食', kcal:99,  p:1.1,  f:0.2,  c:24.7},
+  {k:'potato',n:'土豆（生）',     cat:'主食', kcal:77,  p:2.0,  f:0.2,  c:17.2},
+  {k:'rice',  n:'米饭（熟）',     cat:'主食', kcal:116, p:2.6,  f:0.3,  c:25.9, u:{n:'碗',g:150}},
+  {k:'rrice', n:'大米（生）',     cat:'主食', kcal:346, p:7.4,  f:0.8,  c:77.9},
+  {k:'oat',   n:'燕麦片（干）',   cat:'主食', kcal:377, p:15.0, f:6.7,  c:61.6, u:{n:'勺',g:15}},
+  {k:'bread', n:'全麦面包',       cat:'主食', kcal:246, p:9.0,  f:3.3,  c:45.0, u:{n:'片',g:35}},
+  {k:'corn',  n:'玉米（鲜）',     cat:'主食', kcal:112, p:4.0,  f:1.2,  c:22.8, u:{n:'根',g:200}},
+  {k:'buck',  n:'荞麦面（干）',   cat:'主食', kcal:340, p:11.3, f:1.7,  c:70.2},
+
+  {k:'nuts',  n:'沃隆每日坚果',   cat:'脂肪', kcal:596, p:16.0, f:44.8, c:32.0, u:{n:'袋',g:25}, note:'1 袋 25g = 149 kcal'},
+  {k:'nuts2', n:'混合坚果（原味）',cat:'脂肪', kcal:600, p:20.0, f:50.0, c:20.0},
+  {k:'pb',    n:'花生酱（无糖）', cat:'脂肪', kcal:600, p:25.0, f:50.0, c:20.0},
+  {k:'oil',   n:'橄榄油',         cat:'脂肪', kcal:899, p:0,    f:99.9, c:0,    u:{n:'勺',g:10}, note:'1 勺 10g = 90 kcal'},
+  {k:'avo',   n:'牛油果',         cat:'脂肪', kcal:171, p:2.0,  f:15.3, c:7.4,  u:{n:'个',g:150}},
+
+  {k:'broc',  n:'西兰花',         cat:'蔬果', kcal:36,  p:4.1,  f:0.6,  c:4.3},
+  {k:'spin',  n:'菠菜',           cat:'蔬果', kcal:28,  p:2.6,  f:0.3,  c:4.5},
+  {k:'tomato',n:'番茄',           cat:'蔬果', kcal:20,  p:0.9,  f:0.2,  c:4.0},
+  {k:'cucum', n:'黄瓜',           cat:'蔬果', kcal:16,  p:0.8,  f:0.2,  c:2.9},
+  {k:'apple', n:'苹果',           cat:'蔬果', kcal:54,  p:0.2,  f:0.2,  c:13.5},
+  {k:'banana',n:'香蕉',           cat:'蔬果', kcal:93,  p:1.4,  f:0.2,  c:22.0, u:{n:'根',g:120}},
+  {k:'blue',  n:'蓝莓',           cat:'蔬果', kcal:57,  p:0.7,  f:0.3,  c:14.5}
+];
+const FOOD_CATS=['蛋白','主食','脂肪','蔬果'];
+
+/* 餐盘存独立的 localStorage key —— 不塞进 store，避免触碰 ensureV3 的数据迁移逻辑。
+   跨天自动作废（配餐是当天的事）。 */
+const PLATE_KEY='du_plate_v1';
+function loadPlate(){
+  try{
+    const raw=localStorage.getItem(PLATE_KEY);
+    if(raw){ const o=JSON.parse(raw); if(o&&o.date===todayStr()&&Array.isArray(o.items)) return o; }
+  }catch(e){}
+  return {date:todayStr(), meal:'m1', cat:'蛋白', items:[]};
+}
+function savePlate(){ try{ localStorage.setItem(PLATE_KEY, JSON.stringify(plate)); }catch(e){} }
+var plate=loadPlate();
+var fxSolveK='pse';
+
+function foodByKey(k){ for(let i=0;i<FOOD_DB.length;i++) if(FOOD_DB[i].k===k) return FOOD_DB[i]; return null; }
+function foodMacros(f,g){ const r=(+g||0)/100;
+  return {kcal:f.kcal*r, p:f.p*r, f:f.f*r, c:f.c*r}; }
+function plateTotals(){
+  const t={kcal:0,p:0,f:0,c:0};
+  plate.items.forEach(function(it){
+    const fd=foodByKey(it.k); if(!fd) return;
+    const m=foodMacros(fd,it.g); t.kcal+=m.kcal; t.p+=m.p; t.f+=m.f; t.c+=m.c;
+  });
+  return t;
+}
+function curMeal(){
+  const ms=DIET_PLAN.meals;
+  for(let i=0;i<ms.length;i++) if(ms[i].k===plate.meal) return ms[i];
+  return ms[0];
+}
+/* 某一行餐盘的宏量文案（单独成函数，供「只改克数不重绘」时局部刷新用） */
+function fxM(i){
+  const it=plate.items[i]; if(!it) return '';
+  const fd=foodByKey(it.k); if(!fd) return '';
+  const m=foodMacros(fd,it.g);
+  return Math.round(m.kcal)+' kcal <small>P'+m.p.toFixed(1)+' F'+m.f.toFixed(1)+' C'+m.c.toFixed(1)+'</small>';
+}
+function fxRow(it,i){
+  const fd=foodByKey(it.k); if(!fd) return '';
+  return '<div class="fx-row"><div class="fx-l1">'+
+    '<span class="fx-n">'+esc(fd.n)+'</span>'+
+    '<input class="fx-g" type="number" inputmode="decimal" min="0" data-fxg="'+i+'" value="'+(it.g==null?'':it.g)+'">'+
+    '<span class="fx-u">g</span>'+
+    '<span class="del" data-fxdel="'+i+'">×</span></div>'+
+    '<div class="fx-m" id="fxm_'+i+'">'+fxM(i)+'</div></div>';
+}
+function fxTotalsHtml(){
+  const meal=curMeal(), t=plateTotals();
+  const L={kcal:meal.kcal-t.kcal, p:meal.p-t.p, f:meal.f-t.f, c:meal.c-t.c};
+  function line(lab,o,mark){
+    return '<div class="fx-line"><span class="fx-lab">'+lab+'</span>'+
+      '<span class="fx-v"'+(mark&&o.kcal<0?' style="color:#A32D2D"':'')+'>'+Math.round(o.kcal)+' kcal</span>'+
+      '<span class="fx-v2">P '+o.p.toFixed(1)+'</span>'+
+      '<span class="fx-v2"'+(mark&&o.f<0?' style="color:#A32D2D"':'')+'>F '+o.f.toFixed(1)+'</span>'+
+      '<span class="fx-v2">C '+o.c.toFixed(1)+'</span></div>';
+  }
+  return line('餐盘合计',t,false)+line('还剩',L,true)+
+    '<div class="muted" style="font-size:11px;margin-top:3px">'+meal.name+'目标：<b>'+meal.kcal+
+    ' kcal</b> · P '+meal.p+' · F '+meal.f+' · C '+meal.c+'</div>';
+}
+function fxSolveInner(){
+  const meal=curMeal(), t=plateTotals();
+  const left={kcal:meal.kcal-t.kcal, p:meal.p-t.p, f:meal.f-t.f, c:meal.c-t.c};
+  const fd=foodByKey(fxSolveK)||FOOD_DB[0];
+  function calc(key){
+    const per=fd[key];
+    if(!per||per<=0) return '该食材不含此成分';
+    if(left[key]<=0) return '额度已用完';
+    const g=left[key]/(per/100);
+    return Math.round(g)+' g'+(fd.u? '（约 '+(g/fd.u.g).toFixed(1)+' '+fd.u.n+'）':'');
+  }
+  return '<div class="fx-sres"><div>按剩余热量 → <b>'+calc('kcal')+'</b></div>'+
+    '<div>按剩余碳水 → <b>'+calc('c')+'</b></div></div>';
+}
+function fxSolveHtml(){
+  const opts=FOOD_DB.map(function(f){
+    return '<option value="'+f.k+'"'+(f.k===fxSolveK?' selected':'')+'>'+esc(f.n)+'</option>'; }).join('');
+  return '<div class="fx-solve"><div class="fx-srow"><span>用剩余额度反算</span>'+
+    '<select class="fx-sel" data-fxsel>'+opts+'</select></div>'+
+    '<div data-fxsolve>'+fxSolveInner()+'</div></div>';
+}
+function fxPickHtml(){
+  const tabs=FOOD_CATS.map(function(c){
+    return '<span class="fx-tab'+(c===plate.cat?' on':'')+'" data-fxcat="'+c+'">'+c+'</span>'; }).join('');
+  const list=FOOD_DB.filter(function(f){ return f.cat===plate.cat; }).map(function(f){
+    return '<button class="fx-btn" data-fxadd="'+f.k+'">'+esc(f.n)+
+      '<em>'+f.kcal+' kcal/100g'+(f.u? ' · 1'+f.u.n+' '+f.u.g+'g':'')+'</em></button>'; }).join('');
+  return '<div class="fx-tabs">'+tabs+'</div><div class="fx-grid">'+list+'</div>';
+}
+function foodToolBody(){
+  const mealTabs=DIET_PLAN.meals.map(function(m){
+    return '<span class="fx-tab'+(m.k===plate.meal?' on':'')+'" data-fxmeal="'+m.k+'">'+m.name+'</span>'; }).join('');
+  let h='<div class="fx-tabs">'+mealTabs+'</div><div class="fx-panel">';
+  if(!plate.items.length)
+    h+='<div class="muted" style="font-size:12px;padding:5px 0">餐盘为空 —— 从下方点选食材加入，边配边看还剩多少额度。</div>';
+  else h+=plate.items.map(function(it,i){ return fxRow(it,i); }).join('');
+  h+='<div id="fxTotals">'+fxTotalsHtml()+'</div>';
+  if(plate.items.length)
+    h+='<div style="margin-top:7px"><button class="btn ghost sm" data-fxclear>清空餐盘</button></div>';
+  h+='</div>'+fxSolveHtml();
+  h+='<div class="d-sec">加入食材 · 每 100g 可食部</div>'+fxPickHtml();
+  return h;
+}
+function renderFoodTool(){
+  return '<div class="card" id="foodTool"><h2>'+si('scale')+'食材换算 · 餐盘</h2>'+
+    '<div class="sub">数据为<b>每 100g 可食部</b>，主食一律标<b>生重</b>。'+
+    '点食材即可加入餐盘，改克数实时重算；下方能<b>反向</b>算出「剩余额度还能吃多少克」。</div>'+
+    '<div id="fxBody">'+foodToolBody()+'</div></div>';
+}
+function paintFx(){
+  const el=$('#fxBody'); if(!el) return;
+  el.innerHTML=foodToolBody(); bindFx(el);
+}
+function bindFx(box){
+  box.querySelectorAll('[data-fxmeal]').forEach(function(b){
+    b.addEventListener('click',function(){ plate.meal=b.dataset.fxmeal; savePlate(); paintFx(); }); });
+  box.querySelectorAll('[data-fxcat]').forEach(function(b){
+    b.addEventListener('click',function(){ plate.cat=b.dataset.fxcat; savePlate(); paintFx(); }); });
+  box.querySelectorAll('[data-fxadd]').forEach(function(b){
+    b.addEventListener('click',function(){
+      const fd=foodByKey(b.dataset.fxadd);
+      plate.items.push({k:b.dataset.fxadd, g:(fd&&fd.u)? fd.u.g : 100});
+      savePlate(); paintFx();
+    }); });
+  box.querySelectorAll('[data-fxdel]').forEach(function(b){
+    b.addEventListener('click',function(){ plate.items.splice(+b.dataset.fxdel,1); savePlate(); paintFx(); }); });
+  const cl=box.querySelector('[data-fxclear]');
+  if(cl) cl.addEventListener('click',function(){ plate.items=[]; savePlate(); paintFx(); });
+  const sel=box.querySelector('[data-fxsel]');
+  if(sel) sel.addEventListener('change',function(){
+    fxSolveK=sel.value;
+    const s=box.querySelector('[data-fxsolve]'); if(s) s.innerHTML=fxSolveInner();
+  });
+  /* 改克数：只刷新该行宏量与合计，不重建 DOM —— 否则输入框会失焦 */
+  box.querySelectorAll('[data-fxg]').forEach(function(i){
+    i.addEventListener('input',function(){
+      const n=+i.dataset.fxg;
+      if(!plate.items[n]) return;
+      plate.items[n].g=+i.value||0; savePlate();
+      const mEl=box.querySelector('#fxm_'+n); if(mEl) mEl.innerHTML=fxM(n);
+      const t=box.querySelector('#fxTotals'); if(t) t.innerHTML=fxTotalsHtml();
+      const s=box.querySelector('[data-fxsolve]'); if(s) s.innerHTML=fxSolveInner();
+    }); });
+}
+function bindFoodTool(root){
+  const box=root.querySelector('#foodTool'); if(!box) return;
+  bindFx(box);
+}
+
 /* ---------- 减脂核心看板 ---------- */
 function renderDietBoard(){
   const P=DIET_PLAN, ph=dietPhase(), d=day(), s=store.settings, R=P.ref;
@@ -1851,6 +2081,9 @@ function renderDietBoard(){
       :'今日已超 <span class="d-ink">'+Math.round(-leftover)+'</span> kcal，明天回到 '+ph.kcal+' 正常执行即可')+'</div>';
   else html+='<div class="d-ok" style="margin-top:10px">在上方「摄入热量 / 蛋白质 / 训练时长」填入今日数据，这里会实时计算剩余额度。</div>';
   html+='</div>';
+
+  /* v2.9：食材换算工具放在「今日执行」分组内 —— 它服务于今天这一餐怎么配 */
+  html+=renderFoodTool();
 
   /* 提示区 */
   if(speed!=null && wv.length>=7 && Math.abs(speed)<=R.speedTol)
@@ -1992,7 +2225,7 @@ function renderGoalPage(g){
   html+='<div class="card"><h2>'+si('bulb')+G.name+'灵感</h2><div class="sub">本地精选 · 可收藏 / 标记二创</div>'+
     '<div id="gi_'+G.channel+'"><div class="loading"><span class="spin"></span>加载灵感…</div></div>'+
     '<div class="flex" style="margin-top:8px"><button class="btn ghost sm" onclick="switchTab(\'insp\');selectChannel(\''+G.channel+'\')">'+si('arrow')+' 查看完整灵感库</button></div></div>';
-  const p=$('#p-'+g); p.innerHTML=html; bindTodayInputs(p);
+  const p=$('#p-'+g); p.innerHTML=html; bindTodayInputs(p); bindFoodTool(p);
   const ta=p.querySelector('#goalRev');
   ta.addEventListener('input',()=>{ const rr=store.reviews[todayStr()]||(store.reviews[todayStr()]={}); rr[G.reviewKey]=ta.value; store.reviews[todayStr()]=rr; save(); });
   loadInspInto(document.getElementById('gi_'+G.channel), G.channel, false);
@@ -3883,6 +4116,15 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v2.9',date:'2026-09-27',items:[
+      '新增「食材换算 · 餐盘」工具：把配餐从「凭感觉估」变成「按克数算」。34 种常见食材统一成「每 100g 可食部」一个口径，点选即进餐盘，改克数实时出热量与蛋白/脂肪/碳水，并与当餐目标逐项对账',
+      '提供双向换算：正算（克数 → 宏量）之外，还能用当餐「还剩的额度」反推某种食材还能吃多少克。例如餐盘里已放 2 鸡蛋 + 334g 豆浆，剩 222 kcal 反算紫薯 = 258g 生重，直接回答「这个到底该吃多少」',
+      '主食一律标注生重，并在界面写明原因：同样 100g，生米 346 kcal 而熟饭只有 116 kcal，生熟混算是配餐最常踩的坑',
+      '反算同时给出「按剩余热量」与「按剩余碳水」两条口径。两条结果应当接近（如上例 258g / 273g），相差过大说明目标结构或食材选择有问题，可当作自检用',
+      '餐盘支持四个餐次切换，与 25/35/10/30 的餐次结构对齐；数据存独立的本地 key、跨天自动作废，不牵动主数据迁移逻辑',
+      '食材库收录了实际在吃的「悠白浓醇豆浆」（62 kcal/100g，脂肪 3.2g，为普通无糖豆浆的两倍）与「沃隆每日坚果」（1 袋 25g = 149 kcal），可直接验证这两样在方案里的位置',
+      '改克数时只刷新该行与其下方合计，不重建整个列表 —— 否则输入框会在每次按键后失焦，数字根本没法输'
+    ]},
     {ver:'v2.8',date:'2026-09-27',items:[
       '热量缺口改为按比例设定：取消原先「固定 500 kcal」的做法，改为「TDEE × 15%」＝ 430 kcal，每日摄入 2435 kcal。写成比例而非固定值是为了让基准随体重自适应 —— 日后按体重重算 TDEE 时只需改一个数，缺口会自动缩放到同一强度，不会出现「体重轻了还按老数字吃、缺口越减越狠」',
       '碳水改为吃余量（250g → 271g）：摄入从 2365 提到 2435 后，若碳水仍按 250g 不动，三项宏量折合只有 2352 kcal，与目标差 83 kcal（3.4%），账面不合理。现在每日摄入先扣掉蛋白（740）与脂肪（612）的折合热量，余下的才归碳水，缺口比例一变它自动跟着变，而蛋白与脂肪按体重锁死',
