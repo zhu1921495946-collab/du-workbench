@@ -239,6 +239,10 @@
   .sch-lane-ev .sch-lane-t{display:block; font-size:9px; opacity:.85; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums;}
   .sch-lane-ev.narrow .sch-lane-t{display:none;}
+  .sch-lane-ev.out-lbl{overflow:visible; min-width:0;}
+  .sch-lane-ev.out-lbl .sch-lane-t{display:none;}
+  .sch-lane-ev.out-lbl b{position:absolute; left:100%; top:50%; transform:translateY(-50%);
+    margin-left:5px; overflow:visible; text-overflow:clip; color:inherit;}
   .sch-lane-free{position:absolute; left:9px; top:50%; transform:translateY(-50%);
     font-size:10px; color:#8a97a6;}
   .sch-lane-lgd{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:9px;
@@ -3188,7 +3192,9 @@ const SCH_COLORS=[
   {k:'teal',  n:'青', bg:'#d5eef2', bd:'#2a8f9c', tx:'#0f525c'},
   {k:'red',   n:'红', bg:'#fadfda', bd:'#c5543f', tx:'#782b1c'}
 ];
-const SCH_PPH=54;   /* 网格里每小时的像素高度，需与 CSS 里 .sch-body 的 --h 保持一致 */
+const SCH_PPH=54;   /* 网格视图里每小时的像素高度上限（自适应压缩后会更小），需与 CSS 里 .sch-body 的 --h 保持一致 */
+const SCH_LBL_MIN=13; /* 全景视图：色块宽度不足整条时间轴的 13% 时，块内就放不下名称了（只剩半个字） */
+const SCH_LBL_GAP=17; /* 右侧空档要达到轴的 17%，才够把名称挪到块外右侧显示 */
 let schOffset=0;    /* 当前查看的周：0=本周，-1=上周，+1=下周 */
 let schView='lane'; /* lane=全景（默认：横轴时间 / 纵轴星期，7 天同屏）、grid=网格、list=清单 */
 
@@ -3480,15 +3486,24 @@ function schLaneHtml(wk, laid, today){
       h+='<span class="sch-lane-free">全天空闲</span>';
     }else{
       for(let r=0;r<rows;r++){
+        const layer=cell.filter(function(x){ return (+x.col||0)===r; })
+          .sort(function(a,b){ return schMin(a.it.start)-schMin(b.it.start); });
         h+='<div class="sch-lane-sub" style="left:0;width:100%;top:'+(6+r*24)+'px;height:24px">';
-        cell.forEach(function(x){
-          if((+x.col||0)!==r) return;
+        layer.forEach(function(x, idx){
           const s0=schMin(x.it.start), e0=schMin(x.it.end), c=schColor(x.it.color);
           const ttl=x.it.title||'(未命名)';
           const tm=schHmShort(x.it.start)+'–'+schHmShort(x.it.end);
+          const lp=(s0-axis.from)/span*100, wp=(e0-s0)/span*100;
+          /* 窄块标签外置：1 小时的安排在 12 小时轴上只占 8%，块内塞不下名称（只剩半个字）。
+             若它右侧还有足够空档，就把名称挪到块外右侧显示 —— 块本身仍保持真实宽度与位置，
+             所以「长度=时长」这个映射没有被破坏。
+             判定只用百分比几何、不做像素测量，因此回归测试能够覆盖到这条分支。 */
+          const nx=layer[idx+1];
+          const gapPct=nx? ((schMin(nx.it.start)-axis.from)/span*100-(lp+wp)) : (100-(lp+wp));
+          const out=(wp<SCH_LBL_MIN && gapPct>=SCH_LBL_GAP);
           const tip=ttl+' '+x.it.start+'–'+x.it.end+(x.it.place? ' @'+x.it.place:'')+' · 点击修改';
-          h+='<div class="sch-lane-ev" style="left:'+((s0-axis.from)/span*100).toFixed(3)+'%;'+
-             'width:'+((e0-s0)/span*100).toFixed(3)+'%;'+
+          h+='<div class="sch-lane-ev'+(out?' out-lbl':'')+'" style="left:'+lp.toFixed(3)+'%;'+
+             'width:'+wp.toFixed(3)+'%;'+
              'background:'+c.bg+';border-left-color:'+c.bd+';color:'+c.tx+'" title="'+esc(tip)+'" '+
              'onclick="event.stopPropagation();schEdit(\''+schSafeId(x.it.id)+'\')">'+
              '<span class="sch-lane-t">'+esc(tm)+'</span><b>'+esc(ttl)+'</b></div>';
@@ -4858,6 +4873,7 @@ function renderChangelog(){
       '课表新增「全景」视图并设为默认：把两个轴对调 —— 横轴改为时间、纵轴改为星期，7 天全部落在同一屏内，不再需要左右横滑「拼」出一周',
       '全景视图里色块的位置与长度严格对应起止时间与时长：上班 14:00–20:00 就是轴上 16.7%–66.7% 的那一段。于是「哪天更满、哪天有空档」可以横向直接比较，不用逐个点开看',
       '同一天有重叠安排时，该行自动加高并分层显示，两层都按真实时间对齐，互不遮挡',
+      '1 小时的安排在 12 小时轴上只占 8%，色块里塞不下名称：此时若它右侧有空档，名称会自动挪到块外右侧显示。块本身的宽度与位置仍是真实值，所以「长度=时长」这个映射没有被破坏',
       '时间轴按本周实际安排自适应，并保证至少铺开 12 小时 —— 只排 2 小时安排时也不会被压满整条泳道，仍看得出它落在一天的哪个位置',
       '网格视图同步优化：取消 620px 最小宽度限制（手机窄屏不再必须左右横滑），每小时高度改为在总高 520px 的约束下按跨度自适应压缩，排满一天也能把整周收进一屏',
       '渲染后按实际像素宽度自动降级标签：色块放不下时先隐去次要信息（地点、起止时间），只保留名称，避免出现被裁掉一半的字',
