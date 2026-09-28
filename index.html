@@ -157,6 +157,60 @@
   .insp-card .acts .chip.saved{background:var(--primary); color:#fff;}
   .insp-card .acts .chip.todo{background:var(--accent); color:#fff;}
   .empty{text-align:center; color:var(--muted); padding:32px 16px; font-size:13px;}
+  /* ---------- 课表（v3.0 新增） ---------- */
+  .sch-nav{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:11px;}
+  .sch-range{font-size:12px; color:var(--muted); margin-left:auto; white-space:nowrap;}
+  .sch-tools{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px;}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:rgba(255,255,255,.62);}
+  .seg button{border:none; background:transparent; padding:7px 13px; font-size:13px; color:var(--muted); cursor:pointer; font-family:inherit;}
+  .seg button.on{background:var(--primary); color:#fff; font-weight:700;}
+  .sch-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin-top:12px; padding-bottom:4px;}
+  .sch-grid{min-width:620px;}
+  .sch-head{display:grid; grid-template-columns:44px repeat(7,1fr); border-bottom:1px solid var(--line);}
+  .sch-hc{position:sticky; left:0; z-index:2; background:#eef4fc; border-right:1px solid var(--line);}
+  .sch-hd{padding:6px 2px; text-align:center; font-size:10.5px; line-height:1.3; cursor:pointer;
+    color:var(--muted); border-left:1px solid var(--line);}
+  .sch-hd b{display:block; font-size:12px; color:var(--text);}
+  .sch-hd.today{background:var(--primary-soft);}
+  .sch-hd.today b{color:var(--primary);}
+  .sch-body{display:grid; grid-template-columns:44px repeat(7,1fr);}
+  .sch-rail{position:sticky; left:0; z-index:2; background:#eef4fc; border-right:1px solid var(--line);}
+  .sch-tk{position:absolute; right:4px; transform:translateY(-50%); font-size:9.5px; color:var(--muted); white-space:nowrap;}
+  .sch-track{position:relative; border-left:1px solid var(--line);
+    background-image:repeating-linear-gradient(to bottom, rgba(47,108,192,.16) 0 1px, transparent 1px var(--h,54px));}
+  .sch-track.today{background-color:rgba(227,238,252,.62);}
+  .sch-ev{position:absolute; border-radius:7px; padding:3px 5px; overflow:hidden; cursor:pointer;
+    font-size:10px; line-height:1.25; box-shadow:0 1px 3px rgba(30,60,100,.10);}
+  .sch-ev b{display:block; font-size:11px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .sch-ev span{display:block; opacity:.9; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .sch-day{border:1px solid var(--line); border-radius:12px; padding:9px 12px; margin-bottom:8px; background:rgba(255,255,255,.5);}
+  .sch-day.today{border-color:var(--primary); background:rgba(227,238,252,.55);}
+  .sch-day-h{display:flex; align-items:baseline; gap:8px; font-size:12px; color:var(--muted);}
+  .sch-day-h b{font-size:14px; color:var(--text);}
+  .sch-day-h i{margin-left:auto; font-style:normal; font-size:11px;}
+  .sch-day-h i.free{color:#2f8f63;}
+  .sch-li{display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; font-size:12.5px;}
+  .sch-li + .sch-li{border-top:1px dashed var(--line);}
+  .sch-li .dot{width:8px; height:8px; border-radius:50%; flex:0 0 auto;}
+  .sch-li .tm{flex:0 0 auto; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums;}
+  .sch-li .ttl{flex:1; min-width:0; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .sch-li .ttl em{font-style:normal; color:var(--accent); font-size:11px;}
+  .sch-li .du{flex:0 0 auto; font-size:11px; color:var(--muted);}
+  .sch-li.empty .ttl{color:#8a97a6;}
+  .sch-stat{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px;}
+  .sch-cell{background:rgba(255,255,255,.62); border-radius:11px; padding:9px 6px; text-align:center;}
+  .sch-cell .v{font-size:18px; font-weight:800; line-height:1.25;}
+  .sch-cell .l{font-size:11px; margin-top:3px;}
+  .sch-cell .s{font-size:10px; color:var(--muted); margin-top:2px;}
+  .sch-note{display:flex; gap:7px; align-items:flex-start; font-size:12.5px; line-height:1.65;
+    padding:8px 0; border-top:1px dashed var(--line); color:var(--muted);}
+  .sch-note .ic{flex:0 0 auto; width:15px; font-weight:800;}
+  .sch-note.ok .ic{color:#2f8f63;}
+  .sch-note.warn .ic{color:#c07a12;}
+  .sch-skip{display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:9px;}
+  .sch-chip{border:none; font-family:inherit; padding:4px 10px; border-radius:14px; background:var(--accent-soft);
+    color:#6b4a10; font-size:11.5px; cursor:pointer;}
+  @media (max-width:560px){ .sch-stat{grid-template-columns:repeat(2,1fr);} .sch-range{width:100%; margin-left:0;} }
   .empty svg.ico{width:32px; height:32px; color:var(--line); margin-bottom:8px; display:block; margin-left:auto; margin-right:auto;}
   .toast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:#27302d; color:#fff;
     padding:11px 18px; border-radius:22px; font-size:13px; z-index:99; opacity:0; transition:.25s; max-width:88%;}
@@ -694,6 +748,7 @@
     <div class="content">
       <section class="panel active" id="p-overview"></section>
       <section class="panel" id="p-todo"></section>
+      <section class="panel" id="p-schedule"></section>
       <section class="panel" id="p-fit"></section>
       <section class="panel" id="p-diet"></section>
       <!-- 扩展点：体态矫正（posture）面板已于 2026-09-08 移除，
@@ -746,6 +801,8 @@ function def(){
       ]}
     },
     days:{}, inspiration:{saved:[]}, reviews:{}, reminders:{}, cache:{}, lastFetch:{}, todos:[], inbox:[], goals:[],
+    /* 课表（v3.0）：首次使用预置一份示例安排，用户可随时改删；seeded 标记避免删空后又被自动补回 */
+    schedule:{items:schSeedItems(), seeded:true},
     meds:[], tips:[], tipsGen:null,
     game:{xp:0, alias:'渡尘客', level:1, history:{}, bossXp:0, streak:0, lastDay:'', justLeveled:false}
   };
@@ -774,6 +831,11 @@ function ensureV3(s){
   ]}; ch=true; }
   if(!s.game||!s.game.history){ s.game={xp:0, alias:(s.game&&s.game.alias)||'渡尘客', level:(s.game&&s.game.level)||1, history:{}, bossXp:(s.game&&s.game.bossXp)||0, streak:0, justLeveled:false}; ch=true; }
   if(!s.goals){ s.goals=[]; ch=true; }
+  /* 课表（v3.0）：老数据没有 schedule 字段，补一份预置示例；已有则只做结构校验，绝不清空用户录入的内容。
+     注意不能写成「items 为空就重新 seed」—— 用户主动删空后那会变成删不掉的幽灵数据。 */
+  if(!s.schedule||typeof s.schedule!=='object'||Array.isArray(s.schedule)){ s.schedule={items:schSeedItems(), seeded:true}; ch=true; }
+  if(!Array.isArray(s.schedule.items)){ s.schedule.items=[]; ch=true; }
+  if(s.schedule.seeded==null) s.schedule.seeded=true;
   /* 减脂模块（2026-09-27 接入）缺失字段补齐：仅补设置，不动历史打卡数据 */
   if(s.dietStartJin==null){ s.dietStartJin=170; ch=true; }
   if(s.dietTargetJin==null){ s.dietTargetJin=150; ch=true; }
@@ -899,7 +961,8 @@ const ICONS={
   bell:'<path d="M18 9a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7z"/><path d="M10.5 20a2 2 0 0 0 3 0"/>',
   flame:'<path d="M12 22c4 0 7-2.8 7-6.6 0-4.6-4.1-6.6-3-11.4-2.7 1-4.4 3.4-4.4 5.6 0 1.5-1.1 1.9-1.8 1.1-.9-1-1-2.3-1-2.3-1.4 1.6-2.8 4-2.8 7 0 3.8 3 6.6 7 6.6z"/>',
   scale:'<path d="M12 3v3M7 6h10l3 7a4 4 0 0 1-8 0zM3 6h4l3 7a4 4 0 0 1-8 0z"/><path d="M12 20h.01"/>',
-  chev:'<path d="M6 9l6 6 6-6"/>'
+  chev:'<path d="M6 9l6 6 6-6"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h3M13 14h3M8 17.5h3"/>'
 };
 function si(n,cls){ return '<svg class="ico '+(cls||'')+'" viewBox="0 0 24 24">'+(ICONS[n]||'')+'</svg>'; }
 
@@ -916,6 +979,7 @@ $('#modal2').addEventListener('click',e=>{ if(e.target.id==='modal2') closeModal
 const NAV=[
   {tab:'overview', name:'今日', icon:'sun'},
   {tab:'todo', name:'清单', icon:'list'},
+  {tab:'schedule', name:'课表', icon:'cal'},
   {tab:'fit', name:'健身', icon:'run'},
   {tab:'diet', name:'减脂', icon:'flame'},
   /* 扩展点：体态矫正（posture）导航项已移除，恢复方法见下方 MODULE_GATES.posture */
@@ -933,7 +997,7 @@ const NAV=[
   {tab:'me', name:'我的', icon:'gear'}
 ];
 const GOAL_TABS=['fit','diet','english','skin','finance'];
-const TOOL_TABS=['todo','inbox','insp','ai','tips','growth','review','report','updatelog','me'];
+const TOOL_TABS=['todo','schedule','inbox','insp','ai','tips','growth','review','report','updatelog','me'];
 const BOTTOM=['overview','todo','inbox','me'];
 
 /* ================= 功能模块开关 / 扩展点 =================
@@ -1087,7 +1151,7 @@ function rerender(){
     diet:()=>renderGoalPage('diet'),
     /* 扩展点：体态矫正恢复时在此补回 posture:()=>renderGoalPage('posture'), */
     english:()=>renderGoalPage('english'), skin:renderSkin, finance:()=>renderGoalPage('finance'),
-    inbox:renderInbox, insp:renderInsp, ai:renderAI, tips:renderTips, growth:renderGrowth, review:renderReview,
+    schedule:renderSchedule, inbox:renderInbox, insp:renderInsp, ai:renderAI, tips:renderTips, growth:renderGrowth, review:renderReview,
     report:renderReport, updatelog:renderChangelog, me:renderMe
   }[currentTab]||renderOverview)();
 }
@@ -1419,6 +1483,8 @@ function renderOverview(){
   const waterMl=d.water_ml||0; const pct=Math.min(100,Math.round(waterMl/s.waterTarget*100));
   const gp=dailyPct(); const gq=dailyQuests().filter(q=>!q.done).length;
   let html='';
+  /* v3.0：把「今天几点要干什么」放到第一屏，用户打开工作台就知道今天的硬约束在哪里 */
+  html+=schTodayCard();
   if(gp<100) html+='<div class="card" style="background:linear-gradient(135deg,rgba(255,244,230,.35),rgba(255,233,207,.32));border-left:4px solid var(--accent)"><div class="spread"><b style="font-size:15px">⚔️ 今日修炼 '+gp+'%</b><span class="muted">差 '+gq+' 项渡劫在即</span></div><button class="btn ghost sm" style="margin-top:8px" onclick="switchTab(\'growth\')">'+si('star')+' 去修炼</button></div>';
   /* v2.5：晨间推送改为实时反映今日完成状态
      原实现是写死的四个标签（健身训练 / 英语口语 / 护肤流程 / 记账储蓄），
@@ -3065,6 +3131,505 @@ function skinTrend(days){
 }
 
 /* ============ 今日 Todo 清单 ============ */
+/* ============ 课表（v3.0 新增） ============
+   用途：按周查看与管理时间安排（上班 / 接货 / 上课 / 训练…），支持随时新增、修改、删除。
+   数据：store.schedule.items[]，每条为
+     { id, day(1-7), start:'HH:MM', end:'HH:MM', title, place, color,
+       repeat:'weekly'|'once', date:'YYYY-MM-DD', skip:['YYYY-MM-DD'…], note }
+     · repeat='weekly' → 每周固定重复；skip 存「被跳过的周」，键是那一周的周一日期，用于「只停这一次」
+     · repeat='once'   → 仅在 date 所在的那一周出现（临时事项）
+   两个约定：
+     1) 时间一律以 'HH:MM' 字符串存储，比较时转分钟（schMin），避免 Date 对象的时区与跨天陷阱；
+     2) 所有会拼进 innerHTML 的用户输入（title/place/note）必须过 esc()，id 过 schSafeId()，
+        因为它们都可能由导入的备份文件注入。 */
+const SCH_DAYS=['周一','周二','周三','周四','周五','周六','周日'];
+const SCH_COLORS=[
+  {k:'blue',  n:'蓝', bg:'#dbe8fa', bd:'#2f6cc0', tx:'#103a6e'},
+  {k:'orange',n:'橙', bg:'#fbeed8', bd:'#c07a12', tx:'#6b4a10'},
+  {k:'green', n:'绿', bg:'#d8f0e4', bd:'#2f8f63', tx:'#0f5038'},
+  {k:'purple',n:'紫', bg:'#e6e0f8', bd:'#6a53c0', tx:'#392876'},
+  {k:'teal',  n:'青', bg:'#d5eef2', bd:'#2a8f9c', tx:'#0f525c'},
+  {k:'red',   n:'红', bg:'#fadfda', bd:'#c5543f', tx:'#782b1c'}
+];
+const SCH_PPH=54;   /* 网格里每小时的像素高度，需与 CSS 里 .sch-body 的 --h 保持一致 */
+let schOffset=0;    /* 当前查看的周：0=本周，-1=上周，+1=下周 */
+let schView='grid'; /* grid=周视图，list=清单视图 */
+
+/* 预置安排：按用户描述的实际情况生成（周一~周四 + 周六周日 14:00–20:00 上班；周二 / 周六 20:30 接货）。
+   这里只用字面量、不引用任何模块级变量 —— 它会在 load() 期间由 def() 调用，
+   那时本文件里其余的 const 还处于暂时性死区（TDZ），一引用就会 ReferenceError。 */
+function schSeedItems(){
+  const out=[];
+  [1,2,3,4,6,7].forEach(function(d){
+    out.push({id:'seed-work-'+d, day:d, start:'14:00', end:'20:00', title:'上班', place:'门店',
+      color:'blue', repeat:'weekly', date:'', skip:[], note:''});
+  });
+  [2,6].forEach(function(d){
+    out.push({id:'seed-pick-'+d, day:d, start:'20:30', end:'21:30', title:'接货', place:'',
+      color:'orange', repeat:'weekly', date:'', skip:[], note:''});
+  });
+  return out;
+}
+function schColor(k){
+  for(let i=0;i<SCH_COLORS.length;i++){ if(SCH_COLORS[i].k===k) return SCH_COLORS[i]; }
+  return SCH_COLORS[0];
+}
+function schSafeId(id){ return String(id==null?'':id).replace(/[^A-Za-z0-9_-]/g,''); }
+
+/* ---------- 时间与周 ---------- */
+function schMin(hm){
+  const m=/^(\d{1,2}):(\d{2})$/.exec(String(hm==null?'':hm));
+  if(!m) return null;
+  const v=(+m[1])*60+(+m[2]);
+  return (v>=0 && v<=1440)? v : null;
+}
+function schHM(mins){
+  mins=Math.max(0,Math.min(1440,Math.round(mins||0)));
+  return String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');
+}
+function schFmt(mins){
+  mins=Math.max(0,Math.round(mins||0));
+  const h=Math.floor(mins/60), m=mins%60;
+  if(!h) return m+'分钟';
+  return m? h+'小时'+m+'分' : h+'小时';
+}
+function schDur(it){
+  const a=schMin(it&&it.start), b=schMin(it&&it.end);
+  return (a==null||b==null)? 0 : Math.max(0,b-a);
+}
+/* 周锚点：以周一为一周起点。offset=0 本周，-1 上周，+1 下周 */
+function schWeek(offset){
+  const t=new Date(), dow=(t.getDay()+6)%7, mon=new Date(t);
+  mon.setDate(t.getDate()-dow+((+offset)||0)*7); mon.setHours(0,0,0,0);
+  const days=[], keys=[];
+  for(let i=0;i<7;i++){
+    const x=new Date(mon); x.setDate(mon.getDate()+i);
+    days.push(x);
+    keys.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'));
+  }
+  return {mon:mon, days:days, keys:keys, key:keys[0]};
+}
+function schMd(dt){ return (dt.getMonth()+1)+'/'+dt.getDate(); }
+function schRangeLabel(offset){
+  const wk=schWeek(offset), a=wk.days[0], b=wk.days[6];
+  return (a.getMonth()+1)+'月'+a.getDate()+'日 – '+(b.getMonth()+1)+'月'+b.getDate()+'日';
+}
+/* 取出某一周真正生效的条目（weekly 看 skip，once 看 date 是否落在这一周），附带 dow(0-6) 与 date */
+function schWeekItems(offset){
+  const wk=schWeek(offset), all=(store.schedule&&store.schedule.items)||[], out=[];
+  for(let i=0;i<all.length;i++){
+    const it=all[i]; if(!it) continue;
+    const a=schMin(it.start), b=schMin(it.end);
+    if(a==null||b==null||b<=a) continue;
+    if(it.repeat==='once'){
+      const j=wk.keys.indexOf(String(it.date||'').slice(0,10));
+      if(j<0) continue;
+      out.push({it:it, dow:j, date:wk.keys[j]});
+    }else{
+      if((it.skip||[]).indexOf(wk.key)>=0) continue;
+      const d=Math.max(1,Math.min(7,+it.day||1));
+      out.push({it:it, dow:d-1, date:wk.keys[d-1]});
+    }
+  }
+  return out;
+}
+/* 这一周被「跳过」的常规安排：必须显式列出来，否则用户跳过一次就再也找不到恢复入口 */
+function schSkipped(offset){
+  const wk=schWeek(offset), all=(store.schedule&&store.schedule.items)||[];
+  return all.filter(function(it){
+    return it && it.repeat!=='once' && (it.skip||[]).indexOf(wk.key)>=0;
+  });
+}
+function schDayItems(offset, dow){
+  return schWeekItems(offset).filter(function(x){ return x.dow===dow; })
+    .sort(function(a,b){ return schMin(a.it.start)-schMin(b.it.start) || schMin(a.it.end)-schMin(b.it.end); });
+}
+/* 重叠排布：同一天内按开始时间贪心分配列，能塞进已有列就塞，塞不下才新开一列。
+   这样「上班」和「接货」这种时间挨着的安排会并排显示，而不是互相盖住。 */
+function schLayoutList(list){
+  const byDay=[[],[],[],[],[],[],[]];
+  list.forEach(function(x){ if(byDay[x.dow]) byDay[x.dow].push(x); });
+  const out=[];
+  byDay.forEach(function(arr){
+    const ends=[], placed=[];
+    arr.sort(function(a,b){ return schMin(a.it.start)-schMin(b.it.start) || schMin(a.it.end)-schMin(b.it.end); });
+    arr.forEach(function(x){
+      const s=schMin(x.it.start), e=schMin(x.it.end);
+      let ci=-1;
+      for(let i=0;i<ends.length;i++){ if(ends[i]<=s){ ci=i; break; } }
+      if(ci<0){ ci=ends.length; ends.push(e); } else { ends[ci]=e; }
+      placed.push({x:x, col:ci});
+    });
+    const n=Math.max(1, ends.length);
+    placed.forEach(function(p){ out.push({it:p.x.it, dow:p.x.dow, date:p.x.date, col:p.col, cols:n}); });
+  });
+  return out;
+}
+/* 时间轴范围：按本周实际安排自适应，上下各留 1 小时；完全没有安排时才回落 8:00–22:00。
+   注意别写成「先给 8:00–22:00 再用 min/max 往外扩」—— 那样范围只会变大不会变小，
+   用户一天只有 14:00–20:00 的安排时，上半屏全是空白。 */
+function schAxis(list){
+  let lo=null, hi=null;
+  list.forEach(function(x){
+    const a=schMin(x.it.start), b=schMin(x.it.end);
+    if(a==null||b==null) return;
+    if(lo==null||a<lo) lo=a;
+    if(hi==null||b>hi) hi=b;
+  });
+  if(lo==null){ lo=8*60; hi=22*60; }
+  else { lo=Math.floor(lo/60)*60-60; hi=Math.ceil(hi/60)*60+60; }
+  lo=Math.max(0,lo); hi=Math.min(1440,hi);
+  if(hi-lo<360){ const mid=(lo+hi)/2; lo=Math.max(0,Math.floor((mid-180)/60)*60); hi=Math.min(1440,lo+360); }
+  return {from:lo, to:hi};
+}
+/* 时间预算 + 作息体检：把排期和用户已设的入睡 / 起床目标对齐 */
+function schInsight(list){
+  const bed=schMin(store.settings.bedGoal||'23:30');
+  const wake=schMin(store.settings.wakeGoal||'07:00');
+  const perDay=[0,0,0,0,0,0,0], first=[null,null,null,null,null,null,null], last=[null,null,null,null,null,null,null];
+  let total=0;
+  list.forEach(function(x){
+    const a=schMin(x.it.start), b=schMin(x.it.end), d=schDur(x.it);
+    total+=d; perDay[x.dow]+=d;
+    if(a!=null && (first[x.dow]==null || a<first[x.dow])) first[x.dow]=a;
+    if(b!=null && (last[x.dow]==null || b>last[x.dow])) last[x.dow]=b;
+  });
+  let busiest=0;
+  for(let i=1;i<7;i++){ if(perDay[i]>perDay[busiest]) busiest=i; }
+  const late=[], win=[];
+  for(let i=0;i<7;i++){
+    if(last[i]!=null && bed!=null && last[i]>bed-90) late.push({d:i, end:last[i], gap:bed-last[i]});
+    if(first[i]!=null && wake!=null && first[i]-wake>=60) win.push({d:i, min:first[i]-wake});
+  }
+  const awake=(wake!=null&&bed!=null&&bed>wake)? (bed-wake)*7 : 16*60*7;
+  let days=0; perDay.forEach(function(v){ if(v>0) days++; });
+  return {total:total, perDay:perDay, busiest:busiest, late:late, win:win, days:days, awake:awake};
+}
+
+/* ---------- 渲染 ---------- */
+function schEvHtml(e, axis){
+  const s=schMin(e.it.start), en=schMin(e.it.end), span=Math.max(1, axis.to-axis.from);
+  const top=(s-axis.from)/span*100, hgt=(en-s)/span*100;
+  const c=schColor(e.it.color), w=100/e.cols, left=e.col*w;
+  const style='top:'+top.toFixed(3)+'%;height:'+Math.max(3,hgt).toFixed(3)+'%;'+
+    'left:'+(left+0.7).toFixed(2)+'%;width:'+(w-1.4).toFixed(2)+'%;'+
+    'background:'+c.bg+';border-left:3px solid '+c.bd+';color:'+c.tx;
+  const ttl=e.it.title||'(未命名)';
+  const tip=ttl+' '+e.it.start+'–'+e.it.end+(e.it.place? ' @'+e.it.place : '');
+  return '<div class="sch-ev" style="'+style+'" title="'+esc(tip)+'" '+
+    'onclick="event.stopPropagation();schEdit(\''+schSafeId(e.it.id)+'\')">'+
+    '<b>'+esc(ttl)+'</b><span>'+e.it.start+'–'+e.it.end+'</span>'+
+    (e.it.place? '<span>'+esc(e.it.place)+'</span>':'')+'</div>';
+}
+function schGridHtml(wk, laid, axis, today){
+  const H=(axis.to-axis.from)/60*SCH_PPH, colH=H.toFixed(1)+'px';
+  let h='<div class="sch-scroll"><div class="sch-grid">';
+  h+='<div class="sch-head"><div class="sch-hc"></div>';
+  for(let i=0;i<7;i++){
+    h+='<div class="sch-hd'+(wk.keys[i]===today?' today':'')+'" onclick="schAdd('+(i+1)+')" '+
+      'title="点这里在这天新增事项"><b>'+SCH_DAYS[i]+'</b><span>'+schMd(wk.days[i])+'</span></div>';
+  }
+  h+='</div>';
+  h+='<div class="sch-body" style="height:'+colH+';--h:'+SCH_PPH+'px">';
+  h+='<div class="sch-rail" style="height:'+colH+'">';
+  for(let m=Math.ceil(axis.from/60)*60; m<=axis.to; m+=60){
+    h+='<div class="sch-tk" style="top:'+((m-axis.from)/60*SCH_PPH).toFixed(1)+'px">'+schHM(m)+'</div>';
+  }
+  h+='</div>';
+  for(let i=0;i<7;i++){
+    const cell=laid.filter(function(x){ return x.dow===i; });
+    h+='<div class="sch-track'+(wk.keys[i]===today?' today':'')+'" data-d="'+(i+1)+'" '+
+      'onclick="schTrackClick(event,'+(i+1)+')">'+cell.map(function(x){ return schEvHtml(x,axis); }).join('')+'</div>';
+  }
+  h+='</div></div></div>';
+  return h;
+}
+function schListHtml(wk, laid, today){
+  let h='';
+  for(let i=0;i<7;i++){
+    const day=laid.filter(function(x){ return x.dow===i; })
+      .sort(function(a,b){ return schMin(a.it.start)-schMin(b.it.start); });
+    let sum=0; day.forEach(function(x){ sum+=schDur(x.it); });
+    h+='<div class="sch-day'+(wk.keys[i]===today?' today':'')+'">';
+    h+='<div class="sch-day-h"><b>'+SCH_DAYS[i]+'</b><span>'+schMd(wk.days[i])+'</span>'+
+       (day.length? '<i>'+day.length+' 项 · '+schFmt(sum)+'</i>' : '<i class="free">全天空闲</i>')+'</div>';
+    if(!day.length){
+      h+='<div class="sch-li empty" onclick="schAdd('+(i+1)+')"><span class="tm">--:--</span>'+
+         '<span class="ttl">暂无安排，点这里添加</span></div>';
+    }else{
+      day.forEach(function(x){
+        const c=schColor(x.it.color);
+        h+='<div class="sch-li" onclick="schEdit(\''+schSafeId(x.it.id)+'\')">'+
+          '<span class="dot" style="background:'+c.bd+'"></span>'+
+          '<span class="tm">'+x.it.start+'–'+x.it.end+'</span>'+
+          '<span class="ttl">'+esc(x.it.title||'(未命名)')+(x.it.place? ' · '+esc(x.it.place):'')+
+            (x.it.repeat==='once'? ' <em>临时</em>':'')+'</span>'+
+          '<span class="du">'+schFmt(schDur(x.it))+'</span></div>';
+      });
+    }
+    h+='</div>';
+  }
+  return h;
+}
+function schCell(lab,val,sub){
+  return '<div class="sch-cell"><div class="v d-ink">'+val+'</div><div class="l d-outline">'+lab+'</div>'+
+    (sub? '<div class="s">'+sub+'</div>':'')+'</div>';
+}
+function schStatHtml(ins){
+  const bed=store.settings.bedGoal||'23:30', wake=store.settings.wakeGoal||'07:00';
+  let h='<div class="card"><h2>'+si('chart')+'本周时间预算</h2>'+
+    '<div class="sub">把排期换成数字，一眼看出还剩多少可自由支配的时间</div>';
+  h+='<div class="sch-stat">'+
+    schCell('已安排', schFmt(ins.total), ins.days+' 天有安排')+
+    schCell('日均占用', ins.days? schFmt(Math.round(ins.total/ins.days)) : '—', ins.days? '按有安排的天算' : '本周暂无安排')+
+    schCell('最忙一天', ins.total? SCH_DAYS[ins.busiest] : '—', ins.total? schFmt(ins.perDay[ins.busiest]) : '—')+
+    schCell('完全空闲', (7-ins.days)+' 天', '未排任何事项')+
+  '</div>';
+  h+='<div style="margin-top:12px">';
+  if(ins.late.length){
+    h+='<div class="sch-note warn"><span class="ic">!</span><span>有 <b>'+ins.late.length+'</b> 天收工偏晚（'+
+      ins.late.map(function(x){ return SCH_DAYS[x.d]; }).join('、')+'），距入睡目标 '+bed+' 不足 90 分钟。'+
+      '睡前这 90 分钟是身体从「工作模式」切到「入睡模式」的缓冲，被压缩会直接表现为入睡变慢、睡眠变浅。</span></div>';
+  }else if(ins.total){
+    h+='<div class="sch-note ok"><span class="ic">✓</span><span>每天收工都不晚于入睡目标（'+bed+'）前 90 分钟，睡前缓冲够用。</span></div>';
+  }
+  if(ins.win.length){
+    h+='<div class="sch-note ok"><span class="ic">✓</span><span>有 <b>'+ins.win.length+'</b> 天在起床（'+wake+'）到第一件事之间有 1 小时以上空档（'+
+      ins.win.map(function(x){ return SCH_DAYS[x.d]+' '+schFmt(x.min); }).join('、')+'），适合放训练或学习。</span></div>';
+  }
+  if(ins.total>0){
+    const pct=Math.round(ins.total/ins.awake*100);
+    h+='<div class="sch-note"><span class="ic">·</span><span>本周排期占清醒时间（'+wake+'–'+bed+'，约 '+Math.round(ins.awake/60)+
+      ' 小时）的 <b>'+pct+'%</b>，还剩约 <b>'+schFmt(ins.awake-ins.total)+'</b> 可自由支配 —— 训练、学习、休息都从这里出。</span></div>';
+  }
+  h+='</div></div>';
+  return h;
+}
+function schSkipHtml(offset){
+  const sk=schSkipped(offset);
+  if(!sk.length) return '';
+  return '<div class="sch-skip"><span>这一周已跳过：</span>'+
+    sk.map(function(it){
+      return '<button class="sch-chip" onclick="schToggleSkip(\''+schSafeId(it.id)+'\')" title="点一下恢复这一周">'+
+        esc(it.title||'(未命名)')+' · '+SCH_DAYS[Math.max(1,Math.min(7,+it.day||1))-1]+' ⟲</button>';
+    }).join('')+
+    '<span class="muted" style="font-size:11px">点标签即可恢复</span></div>';
+}
+function schManageHtml(){
+  const n=((store.schedule&&store.schedule.items)||[]).length;
+  return '<div class="card"><details class="d-fold"><summary>课表管理 · 当前共 '+n+' 条安排</summary>'+
+    '<div class="d-why">安排保存在本机浏览器，与其他模块共用同一份备份。换设备或换网址前，先去「我的 → 数据管理」导出备份。</div>'+
+    '<div class="flex wrap" style="gap:8px;margin-top:10px">'+
+      '<button class="btn ghost sm" onclick="schReset(true)">载入示例安排</button>'+
+      '<button class="btn danger sm" onclick="schReset(false)">清空全部事项</button>'+
+    '</div></details></div>';
+}
+/* 主渲染：返回 HTML 字符串，同时写入面板 —— 返回值让无浏览器环境下的回归测试可直接断言内容 */
+function renderSchedule(){
+  const wk=schWeek(schOffset), today=todayStr();
+  const raw=schWeekItems(schOffset);
+  const laid=schLayoutList(raw);
+  const axis=schAxis(laid);
+  let h='<div class="card">';
+  h+='<h2>'+si('cal')+'课表 · 时间安排'+helpBtn('schedule')+'</h2>';
+  h+='<div class="sub">按周查看每天的安排；点任意色块即可修改，点某天的空白处可直接在该时段新增。</div>';
+  h+='<div class="sch-nav">'+
+      '<button class="btn ghost sm" onclick="schGo(-1)">‹ 上一周</button>'+
+      '<button class="btn sm" onclick="schGo(0)">本周</button>'+
+      '<button class="btn ghost sm" onclick="schGo(1)">下一周 ›</button>'+
+      '<span class="sch-range">'+schRangeLabel(schOffset)+(schOffset===0? ' · 本周' : '')+'</span>'+
+     '</div>';
+  h+='<div class="sch-tools"><div class="seg">'+
+      '<button class="'+(schView==='grid'?'on':'')+'" onclick="schSetView(\'grid\')">周视图</button>'+
+      '<button class="'+(schView==='list'?'on':'')+'" onclick="schSetView(\'list\')">清单</button>'+
+     '</div><button class="btn sm" onclick="schAdd()">'+si('plus')+' 新增事项</button></div>';
+  h+=schSkipHtml(schOffset);
+  if(!laid.length){
+    h+='<div class="empty">'+si('cal')+'这一周还没有安排。点上方「新增事项」开始，或点某天的空白处直接添加。</div>';
+  }else if(schView==='list'){
+    h+='<div style="margin-top:12px">'+schListHtml(wk, laid, today)+'</div>';
+  }else{
+    h+=schGridHtml(wk, laid, axis, today);
+  }
+  h+='</div>';
+  h+=schStatHtml(schInsight(raw));
+  h+=schManageHtml();
+  const p=$('#p-schedule'); if(p) p.innerHTML=h;
+  return h;
+}
+/* 今日安排：给「今日」页复用，让用户打开工作台第一屏就知道今天几点要干什么 */
+function schTodayCard(){
+  const dow=(new Date().getDay()+6)%7;
+  const list=schDayItems(0, dow);
+  let sum=0; list.forEach(function(x){ sum+=schDur(x.it); });
+  let h='<div class="card"><h2>'+si('cal')+'今日安排 <span class="pill blue" style="margin-left:auto">'+SCH_DAYS[dow]+'</span></h2>';
+  if(!list.length){
+    h+='<div class="sub">今天没有排班或课程，时间可以自由安排。</div>'+
+       '<div style="margin-top:8px"><button class="btn ghost sm" onclick="switchTab(\'schedule\')">'+si('cal')+' 打开课表</button></div>';
+  }else{
+    h+='<div class="sub">共 <b>'+list.length+'</b> 项 · 合计 <b>'+schFmt(sum)+'</b></div><div style="margin-top:7px">';
+    list.forEach(function(x){
+      const c=schColor(x.it.color);
+      h+='<div class="sch-li" onclick="switchTab(\'schedule\')">'+
+        '<span class="dot" style="background:'+c.bd+'"></span>'+
+        '<span class="tm">'+x.it.start+'–'+x.it.end+'</span>'+
+        '<span class="ttl">'+esc(x.it.title||'(未命名)')+(x.it.place? ' · '+esc(x.it.place):'')+'</span>'+
+        '<span class="du">'+schFmt(schDur(x.it))+'</span></div>';
+    });
+    h+='</div><div style="margin-top:9px"><button class="btn ghost sm" onclick="switchTab(\'schedule\')">'+si('cal')+' 查看整周</button></div>';
+  }
+  h+='</div>';
+  return h;
+}
+
+/* ---------- 操作 ---------- */
+function schGo(off){ schOffset=(+off)||0; renderSchedule(); }
+function schSetView(v){ schView=(v==='list')? 'list':'grid'; renderSchedule(); }
+function schFind(id){
+  const all=(store.schedule&&store.schedule.items)||[];
+  for(let i=0;i<all.length;i++){ if(all[i] && all[i].id===id) return all[i]; }
+  return null;
+}
+function schAdd(day, start, end){ schForm(null, day, start, end); }
+function schEdit(id){
+  const it=schFind(id);
+  if(!it){ toast('该事项已不存在'); renderSchedule(); return; }
+  schForm(it);
+}
+function schTrackClick(ev, day){
+  const el=ev&&ev.currentTarget;
+  if(!el||!el.getBoundingClientRect){ schAdd(day); return; }
+  const r=el.getBoundingClientRect();
+  const axis=schAxis(schWeekItems(schOffset));
+  const ratio=(ev.clientY-r.top)/Math.max(1,r.height);
+  let m=axis.from+ratio*(axis.to-axis.from);
+  m=Math.round(m/30)*30;                                   /* 对齐到半小时 */
+  m=Math.max(axis.from, Math.min(axis.to-60, m));
+  schAdd(day, schHM(m));
+}
+function schForm(it, day, start, end){
+  const isNew=!it;
+  const s0=start||'14:00';
+  const o=it|| {id:'', day:day||1, start:s0, end:end||schHM((schMin(s0)||840)+120),
+    title:'', place:'', color:'blue', repeat:'weekly', date:todayStr(), skip:[], note:''};
+  const once=o.repeat==='once';
+  let h='<h3>'+(isNew? '新增事项':'编辑事项')+'</h3>';
+  h+='<div class="field"><label>事项名称</label><input type="text" id="schT" value="'+esc(o.title)+'" placeholder="如：上班 / 上课 / 接货"></div>';
+  h+='<div class="field"><label>地点（可选）</label><input type="text" id="schP" value="'+esc(o.place)+'" placeholder="如：门店 / 教学楼 A3208"></div>';
+  h+='<div class="flex" style="gap:10px;align-items:flex-start">'+
+      '<div class="field" style="flex:1"><label>开始时间</label><input type="time" id="schS" value="'+esc(o.start)+'"></div>'+
+      '<div class="field" style="flex:1"><label>结束时间</label><input type="time" id="schE" value="'+esc(o.end)+'"></div></div>';
+  h+='<div class="field"><label>重复方式</label><select id="schR">'+
+      '<option value="weekly"'+(once? '':' selected')+'>每周重复（常规安排）</option>'+
+      '<option value="once"'+(once? ' selected':'')+'>仅某一天（临时事项）</option></select></div>';
+  h+='<div class="field" id="schDW"'+(once? ' style="display:none"':'')+'><label>星期</label><select id="schD">'+
+      SCH_DAYS.map(function(n,i){ return '<option value="'+(i+1)+'"'+((+o.day===i+1)? ' selected':'')+'>'+n+'</option>'; }).join('')+
+      '</select></div>';
+  h+='<div class="field" id="schDtW"'+(once? '':' style="display:none"')+'><label>日期</label>'+
+      '<input type="date" id="schDate" value="'+esc(String(o.date||todayStr()).slice(0,10))+'"></div>';
+  h+='<div class="field"><label>颜色</label><select id="schC">'+
+      SCH_COLORS.map(function(c){ return '<option value="'+c.k+'"'+((o.color===c.k)? ' selected':'')+'>'+c.n+'色</option>'; }).join('')+
+      '</select></div>';
+  h+='<div class="field"><label>备注（可选）</label><input type="text" id="schN" value="'+esc(o.note||'')+'" placeholder="如：记得带工牌"></div>';
+  h+='<div class="flex wrap" style="gap:8px;margin-top:6px">'+
+      '<button class="btn" onclick="schSave(\''+schSafeId(o.id)+'\')">'+(isNew? '添加':'保存')+'</button>'+
+      '<button class="btn ghost" onclick="closeModal()">取消</button>'+
+      (isNew? '' : '<button class="btn danger" onclick="schDel(\''+schSafeId(o.id)+'\')">删除</button>')+
+     '</div>';
+  if(!isNew && o.repeat!=='once'){
+    const off=(o.skip||[]).indexOf(schWeek(schOffset).key)>=0;
+    h+='<div class="d-why" style="margin-top:10px">临时调整：'+
+      '<button class="btn ghost sm" onclick="schToggleSkip(\''+schSafeId(o.id)+'\',1)">'+
+      (off? '恢复这一周':'跳过这一周')+'（'+schRangeLabel(schOffset)+'）</button></div>';
+  }
+  showModal(h);
+  schBindForm();
+}
+function schBindForm(){
+  const r=$('#schR'); if(!r) return;
+  const sync=function(){
+    const once=(r.value==='once');
+    const a=$('#schDW'), b=$('#schDtW');
+    if(a) a.style.display=once? 'none':'';
+    if(b) b.style.display=once? '':'none';
+  };
+  if(r.addEventListener) r.addEventListener('change', sync);
+  sync();
+}
+function schSave(id){
+  const g=function(x){ const e=$(x); return (e&&e.value!=null)? String(e.value) : ''; };
+  const title=g('#schT').trim();
+  if(!title){ toast('先填写事项名称'); return; }
+  const a=schMin(g('#schS')), b=schMin(g('#schE'));
+  if(a==null||b==null){ toast('请填写开始与结束时间'); return; }
+  if(b<=a){ toast('结束时间要晚于开始时间'); return; }
+  const repeat=(g('#schR')==='once')? 'once':'weekly';
+  const data={
+    day:Math.max(1,Math.min(7,(+g('#schD'))||1)),
+    start:schHM(a), end:schHM(b), title:title,
+    place:g('#schP').trim(), color:g('#schC')||'blue',
+    repeat:repeat, date:(g('#schDate')||todayStr()).slice(0,10),
+    note:g('#schN').trim()
+  };
+  if(!store.schedule) store.schedule={items:[], seeded:true};
+  if(!Array.isArray(store.schedule.items)) store.schedule.items=[];
+  const it=id? schFind(id) : null;
+  if(it){ Object.assign(it, data); toast('已保存'); }   /* 注意：data 里没有 skip，改时间不会误清「跳过」记录 */
+  else{
+    data.id='s'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    data.skip=[];
+    store.schedule.items.push(data); toast('已添加');
+  }
+  save(); closeModal(); renderSchedule();
+}
+function schDel(id){
+  showModal2('<h3>删除这个事项？</h3><p style="color:var(--muted)">删除后不再出现在课表中，此操作不可撤销。</p>'+
+    '<div class="flex" style="gap:8px;margin-top:14px">'+
+    '<button class="btn danger" onclick="schRemove(\''+schSafeId(id)+'\');closeModal2()">确认删除</button>'+
+    '<button class="btn ghost" onclick="closeModal2()">取消</button></div>');
+}
+function schRemove(id){
+  if(!store.schedule||!Array.isArray(store.schedule.items)) return false;
+  const arr=store.schedule.items;
+  let i=-1;
+  for(let k=0;k<arr.length;k++){ if(arr[k]&&arr[k].id===id){ i=k; break; } }
+  if(i<0) return false;
+  arr.splice(i,1); save(); renderSchedule();
+  toast('已删除');
+  return true;
+}
+function schToggleSkip(id, fromForm){
+  const it=schFind(id);
+  if(!it) return null;
+  if(it.repeat==='once'){ toast('「仅某一天」的事项没有跳过功能'); return null; }
+  const k=schWeek(schOffset).key;
+  if(!Array.isArray(it.skip)) it.skip=[];
+  const i=it.skip.indexOf(k);
+  let on;
+  if(i>=0){ it.skip.splice(i,1); on=false; toast('已恢复「'+it.title+'」在 '+schRangeLabel(schOffset)+' 的安排'); }
+  else{ it.skip.push(k); on=true; toast('已跳过「'+it.title+'」在 '+schRangeLabel(schOffset)+' 的安排'); }
+  save();
+  if(fromForm) closeModal();
+  renderSchedule();
+  return on;
+}
+function schReset(seed){
+  const seedTxt=seed? '载入示例安排':'清空全部事项';
+  showModal2('<h3>'+seedTxt+'？</h3><p style="color:var(--muted)">'+
+    (seed? '将用示例安排（周一~周四 + 周六周日 14:00–20:00 上班、周二 / 周六 20:30 接货）替换当前全部安排。'
+         : '当前全部安排将被删除，此操作不可撤销。')+'</p>'+
+    '<div class="flex" style="gap:8px;margin-top:14px">'+
+    '<button class="btn '+(seed?'':'danger')+'" onclick="schResetDo('+(seed?'true':'false')+');closeModal2()">确认</button>'+
+    '<button class="btn ghost" onclick="closeModal2()">取消</button></div>');
+}
+function schResetDo(seed){
+  if(!store.schedule) store.schedule={items:[], seeded:true};
+  store.schedule.items = seed? schSeedItems() : [];
+  store.schedule.seeded=true;
+  save(); renderSchedule();
+  toast(seed? '已载入示例安排':'已清空课表');
+}
+
 function renderTodo(){
   const list=store.todos||(store.todos=[]);
   const left=list.filter(t=>!t.done).length;
@@ -4098,11 +4663,12 @@ const HELP={
   inbox:'收集箱是你脑子的“暂存区”：任何灵感、想买的东西、待读链接先丢进来。点 🛒/💡/📌/🔗 可快速加标签，处理时一键「转今日待办」。下方「目标细化」可把目标自动拆成「阶段→任务」目标树：勾选切换状态、点优先级切换高/中/低、点 → 追问拆解更小步骤、点 ↻ 继续拆解、点 💡 补充想法，进度与“下一步行动”实时更新。',
   ai:'AI 帮手提供训练安排、护肤方案、英语口语、记账省钱四类能力。点快捷问题或自行输入，回复基于你的本地设定生成，不上传数据。',
   skin:'护肤页除每日打卡外，还有「深度管理」：皮肤诊断、晨晚周护理流程、产品库（点选今日已用）、成分/药品参考、月度预算跟踪。刷酸务必从低浓度、隔天起步。',
-  finance:'理财页记录每日储蓄与支出（餐饮/护肤/通勤/零食/额外）。单笔超过“大额提醒阈值”会弹窗劝你三思。月底用「报表」看进度。'
+  finance:'理财页记录每日储蓄与支出（餐饮/护肤/通勤/零食/额外）。单笔超过“大额提醒阈值”会弹窗劝你三思。月底用「报表」看进度。',
+  schedule:'课表按周展示每天的时间段与对应事项。点任意色块即可修改；点某天的表头或空白处可直接在该天/该时段新增。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。'
 };
 function showHelp(key){
   const txt=HELP[key]||'本模块的使用说明将在后续补充。';
-  const names={overview:'今日',todo:'Todo 清单',inbox:'收集箱',ai:'AI 帮手',skin:'护肤管理',finance:'理财'};
+  const names={overview:'今日',todo:'Todo 清单',schedule:'课表',inbox:'收集箱',ai:'AI 帮手',skin:'护肤管理',finance:'理财'};
   showModal('<h3>'+si('help')+' 使用说明 · '+(names[key]||'')+'</h3><p style="font-size:14px;line-height:1.8;color:#3c4043">'+txt+'</p><button class="btn" style="margin-top:14px" onclick="closeModal()">明白了</button>');
 }
 function showUsage(){
@@ -4116,6 +4682,17 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v3.0',date:'2026-09-28',items:[
+      '新增「课表」模块：按周查看与管理时间安排，支持随时新增、修改、删除，一眼看清每天几点到几点有什么事情',
+      '两种重复方式：「每周重复」用于固定班表与常规课程，改一次就一直生效；「仅某一天」用于临时接货、补课这类单次事项，不会污染常规安排',
+      '「跳过这一周」用于临时不来的情况：跳过的条目不会消失，而是以标签形式留在页面上并标注星期，点一下就能恢复 —— 不做静默删除',
+      '周视图为时间网格，左侧时间刻度固定不随横滑移动；同一时段有多件事时自动并排分列，不会互相遮挡',
+      '提供清单视图作为手机端的替代读法：按天分块，每项列出时间段、名称、地点与时长，屏幕窄时无需横向滚动',
+      '自动统计本周时间预算：已安排总时长、日均占用、最忙的一天、完全空闲的天数，并与「我的 → 设置」里的入睡 / 起床目标对齐，提示哪几天收工太晚会挤压睡前缓冲、哪几天早晨有空档可以放训练',
+      '「今日」页顶部新增「今日安排」卡片，打开工作台第一屏就能看到今天的硬约束，不必先切到课表页',
+      '预置了一份示例安排（周一~周四 + 周六周日 14:00–20:00 上班、周二 / 周六 20:30 接货），可直接修改或一键清空重来',
+      '数据存于本机浏览器的同一份备份中，与其余模块一起导出 / 恢复；导入备份时缺字段会自动补空容器，不会因字段缺失而白屏'
+    ]},
     {ver:'v2.9',date:'2026-09-27',items:[
       '新增「食材换算 · 餐盘」工具：把配餐从「凭感觉估」变成「按克数算」。34 种常见食材统一成「每 100g 可食部」一个口径，点选即进餐盘，改克数实时出热量与蛋白/脂肪/碳水，并与当餐目标逐项对账',
       '提供双向换算：正算（克数 → 宏量）之外，还能用当餐「还剩的额度」反推某种食材还能吃多少克。例如餐盘里已放 2 鸡蛋 + 334g 豆浆，剩 222 kcal 反算紫薯 = 258g 生重，直接回答「这个到底该吃多少」',
@@ -4318,6 +4895,10 @@ function normalizeImported(src){
   out.days=(s.days && typeof s.days==='object' && !Array.isArray(s.days))? s.days : {};
   ['reviews','reminders','cache','lastFetch'].forEach(k=>{ if(!out[k]||typeof out[k]!=='object'||Array.isArray(out[k])) out[k]=d[k]; });
   ['todos','inbox','goals','meds','tips'].forEach(k=>{ if(!Array.isArray(out[k])) out[k]=[]; });
+  /* 课表：缺字段时给空容器而不是 undefined —— save()/recordDay() 会遍历这些容器，
+     缺了会在导入后直接抛错（历史上就是这么白屏的）。seeded 置 true，导入不覆盖用户自己的安排。 */
+  if(!out.schedule||typeof out.schedule!=='object'||Array.isArray(out.schedule)) out.schedule={items:[], seeded:true};
+  if(!Array.isArray(out.schedule.items)) out.schedule.items=[];
   if(!out.inspiration||typeof out.inspiration!=='object') out.inspiration={saved:[]};
   if(!Array.isArray(out.inspiration.saved)) out.inspiration.saved=[];
   if(!out.game||typeof out.game!=='object') out.game=d.game;
