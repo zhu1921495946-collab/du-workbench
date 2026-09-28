@@ -165,7 +165,7 @@
   .seg button{border:none; background:transparent; padding:7px 13px; font-size:13px; color:var(--muted); cursor:pointer; font-family:inherit;}
   .seg button.on{background:var(--primary); color:#fff; font-weight:700;}
   .sch-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch; margin-top:12px; padding-bottom:4px;}
-  .sch-grid{min-width:620px;}
+  .sch-grid{min-width:0;}                      /* 不再强制 620px：手机窄屏也无需左右横滑 */
   .sch-head{display:grid; grid-template-columns:44px repeat(7,1fr); border-bottom:1px solid var(--line);}
   .sch-hc{position:sticky; left:0; z-index:2; background:#eef4fc; border-right:1px solid var(--line);}
   .sch-hd{padding:6px 2px; text-align:center; font-size:10.5px; line-height:1.3; cursor:pointer;
@@ -210,7 +210,44 @@
   .sch-skip{display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:9px;}
   .sch-chip{border:none; font-family:inherit; padding:4px 10px; border-radius:14px; background:var(--accent-soft);
     color:#6b4a10; font-size:11.5px; cursor:pointer;}
-  @media (max-width:560px){ .sch-stat{grid-template-columns:repeat(2,1fr);} .sch-range{width:100%; margin-left:0;} }
+  .sch-ev.narrow .sch-ev-p{display:none;}      /* 色块太窄时先隐去地点，保住名称与起止时间 */
+  /* ---------- 全景视图（v3.1）：一天一条横向泳道，7 天纵向叠放 ---------- */
+  .sch-lane{margin-top:12px;}
+  .sch-lane-hd{display:flex; align-items:flex-end; height:17px;}
+  .sch-lane-c0{flex:0 0 46px; width:46px; font-size:10px; color:var(--muted);}
+  .sch-lane-axis{flex:1; position:relative; height:17px; min-width:0;}
+  .sch-lane-axis i{position:absolute; bottom:1px; transform:translateX(-50%); font-size:9.5px;
+    color:var(--muted); font-style:normal; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .sch-lane-axis i:first-child{transform:none;}
+  .sch-lane-axis i:last-child{transform:translateX(-100%);}
+  .sch-lane-row{display:flex; align-items:stretch; border-top:1px solid var(--line);}
+  .sch-lane-row.today{background:rgba(227,238,252,.6);}
+  .sch-lane-day{flex:0 0 46px; width:46px; padding:4px 0 0; border-right:1px solid var(--line);
+    font-size:9.5px; line-height:1.3; color:var(--muted); overflow:hidden;}
+  .sch-lane-day b{display:block; font-size:11px; line-height:1.25; color:var(--text); white-space:nowrap;}
+  .sch-lane-day span{display:block; white-space:nowrap;}
+  .sch-lane-day em{display:block; font-style:normal; font-weight:700; color:var(--primary);
+    font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden;}
+  .sch-lane-day em.free{color:#8a97a6; font-weight:400;}
+  .sch-lane-bar{flex:1; position:relative; min-width:0; cursor:pointer;}
+  .sch-lane-sub{position:absolute;}
+  .sch-lane-ev{position:absolute; top:2px; bottom:2px; min-width:9px; border-radius:6px;
+    border-left:3px solid transparent; padding:2px 4px; overflow:hidden; cursor:pointer;
+    font-size:10px; line-height:1.15; box-shadow:0 1px 3px rgba(30,60,100,.10);}
+  .sch-lane-ev b{display:block; font-size:10.5px; font-weight:700; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap;}
+  .sch-lane-ev .sch-lane-t{display:block; font-size:9px; opacity:.85; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .sch-lane-ev.narrow .sch-lane-t{display:none;}
+  .sch-lane-free{position:absolute; left:9px; top:50%; transform:translateY(-50%);
+    font-size:10px; color:#8a97a6;}
+  .sch-lane-lgd{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:9px;
+    font-size:10.5px; line-height:1.5; color:var(--muted);}
+  .sch-lane-lgd .ln{display:inline-block; width:16px; height:8px; border-radius:3px; flex:0 0 auto;
+    background:var(--primary-soft); border-left:3px solid var(--primary);}
+  .sch-lane-lgd .sp{margin-left:auto;}
+  @media (max-width:560px){ .sch-stat{grid-template-columns:repeat(2,1fr);} .sch-range{width:100%; margin-left:0;}
+    .sch-lane-c0,.sch-lane-day{flex-basis:42px; width:42px;}   /* 窄屏把行首列收窄，宽度让给泳道 */ }
   .empty svg.ico{width:32px; height:32px; color:var(--line); margin-bottom:8px; display:block; margin-left:auto; margin-right:auto;}
   .toast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:#27302d; color:#fff;
     padding:11px 18px; border-radius:22px; font-size:13px; z-index:99; opacity:0; transition:.25s; max-width:88%;}
@@ -3153,7 +3190,7 @@ const SCH_COLORS=[
 ];
 const SCH_PPH=54;   /* 网格里每小时的像素高度，需与 CSS 里 .sch-body 的 --h 保持一致 */
 let schOffset=0;    /* 当前查看的周：0=本周，-1=上周，+1=下周 */
-let schView='grid'; /* grid=周视图，list=清单视图 */
+let schView='lane'; /* lane=全景（默认：横轴时间 / 纵轴星期，7 天同屏）、grid=网格、list=清单 */
 
 /* 预置安排：按用户描述的实际情况生成（周一~周四 + 周六周日 14:00–20:00 上班；周二 / 周六 20:30 接货）。
    这里只用字面量、不引用任何模块级变量 —— 它会在 load() 期间由 def() 调用，
@@ -3196,6 +3233,20 @@ function schFmt(mins){
 function schDur(it){
   const a=schMin(it&&it.start), b=schMin(it&&it.end);
   return (a==null||b==null)? 0 : Math.max(0,b-a);
+}
+/* 紧凑时长：全景视图的行首只有 46px 宽，用「6h」而不是「6小时」才放得下 */
+function schDurShort(mins){
+  mins=Math.max(0,Math.round(mins||0));
+  if(!mins) return '空闲';
+  if(mins<60) return mins+'m';
+  return (mins%60===0? (mins/60) : Math.round(mins/60*10)/10)+'h';
+}
+/* 紧凑时刻：整点省掉「:00」（14:00 → 14），半点保留（20:30）。
+   全景视图的色块内要同时放下起止时间与名称，每一格宽度都金贵 */
+function schHmShort(hm){
+  const m=/^(\d{1,2}):(\d{2})$/.exec(String(hm==null?'':hm));
+  if(!m) return String(hm==null?'':hm);
+  return m[2]==='00'? String(+m[1]) : (+m[1])+':'+m[2];
 }
 /* 周锚点：以周一为一周起点。offset=0 本周，-1 上周，+1 下周 */
 function schWeek(offset){
@@ -3265,10 +3316,15 @@ function schLayoutList(list){
   });
   return out;
 }
-/* 时间轴范围：按本周实际安排自适应，上下各留 1 小时；完全没有安排时才回落 8:00–22:00。
+/* 时间轴范围：按本周实际安排自适应，上下各留 1 小时并取整到整点；完全没有安排时才回落 8:00–22:00。
+   第二个参数 minSpan（分钟）是「最小可视跨度」：
+     · 网格视图用默认 360（6 小时）—— 纵轴是按小时铺像素的，跨度小一点更紧凑；
+     · 全景视图用 720（12 小时）—— 只排了 2 小时安排时，如果轴也跟着缩到 2 小时，
+       色块会被拉满整条泳道，反而看不出「它其实只占用一天里的一小块」。留出上下文才叫纵览。
    注意别写成「先给 8:00–22:00 再用 min/max 往外扩」—— 那样范围只会变大不会变小，
    用户一天只有 14:00–20:00 的安排时，上半屏全是空白。 */
-function schAxis(list){
+function schAxis(list, minSpan){
+  const ms=(minSpan>0? minSpan : 360);
   let lo=null, hi=null;
   list.forEach(function(x){
     const a=schMin(x.it.start), b=schMin(x.it.end);
@@ -3279,8 +3335,20 @@ function schAxis(list){
   if(lo==null){ lo=8*60; hi=22*60; }
   else { lo=Math.floor(lo/60)*60-60; hi=Math.ceil(hi/60)*60+60; }
   lo=Math.max(0,lo); hi=Math.min(1440,hi);
-  if(hi-lo<360){ const mid=(lo+hi)/2; lo=Math.max(0,Math.floor((mid-180)/60)*60); hi=Math.min(1440,lo+360); }
+  if(hi-lo<ms){
+    lo=Math.round((lo+hi-ms)/2/60)*60;      /* 先按整点对齐，再撑到最小跨度 */
+    hi=lo+ms;
+    if(lo<0){ lo=0; hi=ms; }
+    if(hi>1440){ hi=1440; lo=1440-ms; }
+  }
   return {from:lo, to:hi};
+}
+/* 刻度步长（小时）：跨度越大刻度越密，步长跟着放大，避免刻度文字挤成一团 */
+function schAxisStep(spanMin){
+  const h=(spanMin||0)/60;
+  if(h<=9) return 1;
+  if(h<=16) return 2;
+  return 3;
 }
 /* 时间预算 + 作息体检：把排期和用户已设的入睡 / 起床目标对齐 */
 function schInsight(list){
@@ -3318,11 +3386,17 @@ function schEvHtml(e, axis){
   const tip=ttl+' '+e.it.start+'–'+e.it.end+(e.it.place? ' @'+e.it.place : '');
   return '<div class="sch-ev" style="'+style+'" title="'+esc(tip)+'" '+
     'onclick="event.stopPropagation();schEdit(\''+schSafeId(e.it.id)+'\')">'+
-    '<b>'+esc(ttl)+'</b><span>'+e.it.start+'–'+e.it.end+'</span>'+
-    (e.it.place? '<span>'+esc(e.it.place)+'</span>':'')+'</div>';
+    '<b>'+esc(ttl)+'</b><span class="sch-ev-t">'+e.it.start+'–'+e.it.end+'</span>'+
+    (e.it.place? '<span class="sch-ev-p">'+esc(e.it.place)+'</span>':'')+'</div>';
 }
 function schGridHtml(wk, laid, axis, today){
-  const H=(axis.to-axis.from)/60*SCH_PPH, colH=H.toFixed(1)+'px';
+  /* 每小时高度不再写死 54px，而是在总高 520px 的约束下反推：跨度越大格子越扁，
+     这样从早六点排到晚十一点也能整体收进一屏，不必上下滚动才看得到全貌。
+     下限 28px —— 再扁色块里就塞不下字了。 */
+  const hours=Math.max(1,(axis.to-axis.from)/60);
+  const pph=Math.max(28, Math.min(SCH_PPH, Math.round(520/hours)));
+  const tstep=pph<38? 2 : 1;               /* 格子压扁后刻度改成 2 小时一格，避免文字叠在一起 */
+  const colH=(hours*pph).toFixed(1)+'px';
   let h='<div class="sch-scroll"><div class="sch-grid">';
   h+='<div class="sch-head"><div class="sch-hc"></div>';
   for(let i=0;i<7;i++){
@@ -3330,10 +3404,10 @@ function schGridHtml(wk, laid, axis, today){
       'title="点这里在这天新增事项"><b>'+SCH_DAYS[i]+'</b><span>'+schMd(wk.days[i])+'</span></div>';
   }
   h+='</div>';
-  h+='<div class="sch-body" style="height:'+colH+';--h:'+SCH_PPH+'px">';
+  h+='<div class="sch-body" style="height:'+colH+';--h:'+(pph*tstep)+'px">';
   h+='<div class="sch-rail" style="height:'+colH+'">';
-  for(let m=Math.ceil(axis.from/60)*60; m<=axis.to; m+=60){
-    h+='<div class="sch-tk" style="top:'+((m-axis.from)/60*SCH_PPH).toFixed(1)+'px">'+schHM(m)+'</div>';
+  for(let m=Math.ceil(axis.from/60)*60; m<=axis.to; m+=tstep*60){
+    h+='<div class="sch-tk" style="top:'+((m-axis.from)/60*pph).toFixed(1)+'px">'+schHM(m)+'</div>';
   }
   h+='</div>';
   for(let i=0;i<7;i++){
@@ -3370,6 +3444,95 @@ function schListHtml(wk, laid, today){
     h+='</div>';
   }
   return h;
+}
+/* ---------- 全景视图（v3.1） ---------- */
+/* 为什么要有它：网格视图的横轴是「星期」，7 列挤在手机窄屏里必须左右横滑才看得全；
+   纵轴又按每小时固定高度展开，稍长的班表还得上下滚动 —— 两个方向都要滑，
+   就没法「一眼看完整个星期」。
+   全景视图把两个方向对调：横轴改为时间、纵轴改为星期，宽度随屏幕自适应（零横滑），
+   7 天全部落在同一屏内。色块的左右位置对应起止时间、长度对应时长，
+   于是「哪天更满、哪天有空档」可以横向直接比较，不用逐个点开看。
+   同一个有重叠事项时，该行自动加高并分层显示，两层都按真实时间对齐，互不遮挡。 */
+function schLaneHtml(wk, laid, today){
+  const axis=schAxis(laid, 720);           /* 至少铺开 12 小时，短安排也看得出它落在一天的哪里 */
+  const span=Math.max(1, axis.to-axis.from);
+  const step=schAxisStep(span);
+  const gpct=(step*60)/span*100;
+  const barBg='background-image:linear-gradient(to right, rgba(47,108,192,.13) 0 1px, transparent 1px);'+
+    'background-size:'+gpct.toFixed(4)+'% 100%;';
+  let h='<div class="sch-lane">';
+  h+='<div class="sch-lane-hd"><span class="sch-lane-c0">时间</span>'+
+     '<div class="sch-lane-axis" style="'+barBg+'">';
+  for(let m=Math.ceil(axis.from/60)*60; m<=axis.to; m+=step*60){
+    h+='<i style="left:'+((m-axis.from)/span*100).toFixed(3)+'%">'+schHM(m)+'</i>';
+  }
+  h+='</div></div>';
+  for(let i=0;i<7;i++){
+    const cell=laid.filter(function(x){ return x.dow===i; });
+    let rows=1, sum=0;
+    cell.forEach(function(x){ rows=Math.max(rows, +x.cols||1); sum+=schDur(x.it); });
+    h+='<div class="sch-lane-row'+(wk.keys[i]===today? ' today':'')+'" style="height:'+(rows*24+12)+'px">';
+    h+='<div class="sch-lane-day"><b>'+SCH_DAYS[i]+'</b><span>'+schMd(wk.days[i])+'</span>'+
+       '<em'+(sum? '':' class="free"')+'>'+schDurShort(sum)+'</em></div>';
+    h+='<div class="sch-lane-bar" style="'+barBg+'" data-d="'+(i+1)+'" '+
+       'onclick="schLaneClick(event,'+(i+1)+')">';
+    if(!cell.length){
+      h+='<span class="sch-lane-free">全天空闲</span>';
+    }else{
+      for(let r=0;r<rows;r++){
+        h+='<div class="sch-lane-sub" style="left:0;width:100%;top:'+(6+r*24)+'px;height:24px">';
+        cell.forEach(function(x){
+          if((+x.col||0)!==r) return;
+          const s0=schMin(x.it.start), e0=schMin(x.it.end), c=schColor(x.it.color);
+          const ttl=x.it.title||'(未命名)';
+          const tm=schHmShort(x.it.start)+'–'+schHmShort(x.it.end);
+          const tip=ttl+' '+x.it.start+'–'+x.it.end+(x.it.place? ' @'+x.it.place:'')+' · 点击修改';
+          h+='<div class="sch-lane-ev" style="left:'+((s0-axis.from)/span*100).toFixed(3)+'%;'+
+             'width:'+((e0-s0)/span*100).toFixed(3)+'%;'+
+             'background:'+c.bg+';border-left-color:'+c.bd+';color:'+c.tx+'" title="'+esc(tip)+'" '+
+             'onclick="event.stopPropagation();schEdit(\''+schSafeId(x.it.id)+'\')">'+
+             '<span class="sch-lane-t">'+esc(tm)+'</span><b>'+esc(ttl)+'</b></div>';
+        });
+        h+='</div>';
+      }
+    }
+    h+='</div></div>';
+  }
+  h+='<div class="sch-lane-lgd"><span class="ln"></span>'+
+     '横轴为时间，色块的长度即时长；当天有重叠安排时自动分层，两层都按真实时间对齐。短事项的色块较窄，点一下即可看完整信息'+
+     '<span class="sp">点泳道空白处按位置新增</span></div>';
+  h+='</div>';
+  return h;
+}
+/* 全景视图横向点击新增：比例取自 X 轴而不是 Y 轴 */
+function schLaneClick(ev, day){
+  const el=ev&&ev.currentTarget;
+  if(!el||!el.getBoundingClientRect){ schAdd(day); return; }
+  const r=el.getBoundingClientRect();
+  const axis=schAxis(schLayoutList(schWeekItems(schOffset)), 720);
+  const ratio=(ev.clientX-r.left)/Math.max(1,r.width);
+  let m=axis.from+ratio*(axis.to-axis.from);
+  m=Math.round(m/30)*30;                                   /* 对齐到半小时 */
+  m=Math.max(axis.from, Math.min(axis.to-60, m));
+  schAdd(day, schHM(m));
+}
+/* 渲染后按实际像素宽度降级标签：色块太窄时先隐去次要信息（地点 / 起止时间），
+   只保留名称 —— 否则会出现「被裁掉一半的字」，反而更难读。
+   纯展示增强：测不到布局（无浏览器环境）时静默跳过，不影响任何数据逻辑。 */
+function schFitLabels(){
+  try{
+    if(typeof document==='undefined' || !document.querySelectorAll) return;
+    const sel=['.sch-lane-ev','.sch-ev'];
+    for(let k=0;k<sel.length;k++){
+      const ns=document.querySelectorAll(sel[k]);
+      if(!ns||!ns.length) continue;
+      for(let i=0;i<ns.length;i++){
+        const el=ns[i];
+        if(!el||!el.clientWidth||!el.scrollWidth) continue;
+        if(el.scrollWidth>el.clientWidth) el.classList.add('narrow');
+      }
+    }
+  }catch(e){}
 }
 function schCell(lab,val,sub){
   return '<div class="sch-cell"><div class="v d-ink">'+val+'</div><div class="l d-outline">'+lab+'</div>'+
@@ -3432,7 +3595,12 @@ function renderSchedule(){
   const axis=schAxis(laid);
   let h='<div class="card">';
   h+='<h2>'+si('cal')+'课表 · 时间安排'+helpBtn('schedule')+'</h2>';
-  h+='<div class="sub">按周查看每天的安排；点任意色块即可修改，点某天的空白处可直接在该时段新增。</div>';
+  const HINT={
+    lane:'横轴是时间、纵轴是星期，7 天全部落在同一屏内、不需要左右横滑：色块的长度就是时长，可以横向直接比较哪天更满、哪天有空档。',
+    grid:'时间网格：左侧刻度为时间、每列一天，同一时段有多件事时自动并排分列。格子高度会随整周跨度自动压缩，尽量让全周收进一屏。',
+    list:'清单读法：按天分块列出每项的时间段、名称、地点与时长，屏幕窄时无需横向滚动。'
+  };
+  h+='<div class="sub">'+HINT[schView]+'点任意色块即可修改，点空白处可直接按位置新增。</div>';
   h+='<div class="sch-nav">'+
       '<button class="btn ghost sm" onclick="schGo(-1)">‹ 上一周</button>'+
       '<button class="btn sm" onclick="schGo(0)">本周</button>'+
@@ -3440,21 +3608,25 @@ function renderSchedule(){
       '<span class="sch-range">'+schRangeLabel(schOffset)+(schOffset===0? ' · 本周' : '')+'</span>'+
      '</div>';
   h+='<div class="sch-tools"><div class="seg">'+
-      '<button class="'+(schView==='grid'?'on':'')+'" onclick="schSetView(\'grid\')">周视图</button>'+
-      '<button class="'+(schView==='list'?'on':'')+'" onclick="schSetView(\'list\')">清单</button>'+
+      '<button class="'+(schView==='lane'?'on':'')+'" onclick="schSetView(\'lane\')" title="7 天同屏纵览：横轴时间、纵轴星期">全景</button>'+
+      '<button class="'+(schView==='grid'?'on':'')+'" onclick="schSetView(\'grid\')" title="时间网格：左侧刻度、每列一天">网格</button>'+
+      '<button class="'+(schView==='list'?'on':'')+'" onclick="schSetView(\'list\')" title="按天分块的清单读法">清单</button>'+
      '</div><button class="btn sm" onclick="schAdd()">'+si('plus')+' 新增事项</button></div>';
   h+=schSkipHtml(schOffset);
   if(!laid.length){
     h+='<div class="empty">'+si('cal')+'这一周还没有安排。点上方「新增事项」开始，或点某天的空白处直接添加。</div>';
   }else if(schView==='list'){
     h+='<div style="margin-top:12px">'+schListHtml(wk, laid, today)+'</div>';
-  }else{
+  }else if(schView==='grid'){
     h+=schGridHtml(wk, laid, axis, today);
+  }else{
+    h+=schLaneHtml(wk, laid, today);
   }
   h+='</div>';
   h+=schStatHtml(schInsight(raw));
   h+=schManageHtml();
   const p=$('#p-schedule'); if(p) p.innerHTML=h;
+  schFitLabels();
   return h;
 }
 /* 今日安排：给「今日」页复用，让用户打开工作台第一屏就知道今天几点要干什么 */
@@ -3484,7 +3656,7 @@ function schTodayCard(){
 
 /* ---------- 操作 ---------- */
 function schGo(off){ schOffset=(+off)||0; renderSchedule(); }
-function schSetView(v){ schView=(v==='list')? 'list':'grid'; renderSchedule(); }
+function schSetView(v){ schView=(v==='list'||v==='grid')? v : 'lane'; renderSchedule(); }
 function schFind(id){
   const all=(store.schedule&&store.schedule.items)||[];
   for(let i=0;i<all.length;i++){ if(all[i] && all[i].id===id) return all[i]; }
@@ -4664,7 +4836,7 @@ const HELP={
   ai:'AI 帮手提供训练安排、护肤方案、英语口语、记账省钱四类能力。点快捷问题或自行输入，回复基于你的本地设定生成，不上传数据。',
   skin:'护肤页除每日打卡外，还有「深度管理」：皮肤诊断、晨晚周护理流程、产品库（点选今日已用）、成分/药品参考、月度预算跟踪。刷酸务必从低浓度、隔天起步。',
   finance:'理财页记录每日储蓄与支出（餐饮/护肤/通勤/零食/额外）。单笔超过“大额提醒阈值”会弹窗劝你三思。月底用「报表」看进度。',
-  schedule:'课表按周展示每天的时间段与对应事项。点任意色块即可修改；点某天的表头或空白处可直接在该天/该时段新增。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。'
+  schedule:'课表按周展示每天的时间段与对应事项，提供三种读法：「全景」横轴为时间、纵轴为星期，7 天全部落在同一屏内、不需要左右横滑，色块的长度就是时长，最适合一眼纵览整周；「网格」是时间网格，适合看精确时段，格子高度会随整周跨度自动压缩；「清单」按天分块列出时间段、名称、地点与时长，屏幕窄时无需横向滚动。点任意色块即可修改，点空白处可直接按点击位置新增。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。'
 };
 function showHelp(key){
   const txt=HELP[key]||'本模块的使用说明将在后续补充。';
@@ -4682,6 +4854,15 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v3.1',date:'2026-09-28',items:[
+      '课表新增「全景」视图并设为默认：把两个轴对调 —— 横轴改为时间、纵轴改为星期，7 天全部落在同一屏内，不再需要左右横滑「拼」出一周',
+      '全景视图里色块的位置与长度严格对应起止时间与时长：上班 14:00–20:00 就是轴上 16.7%–66.7% 的那一段。于是「哪天更满、哪天有空档」可以横向直接比较，不用逐个点开看',
+      '同一天有重叠安排时，该行自动加高并分层显示，两层都按真实时间对齐，互不遮挡',
+      '时间轴按本周实际安排自适应，并保证至少铺开 12 小时 —— 只排 2 小时安排时也不会被压满整条泳道，仍看得出它落在一天的哪个位置',
+      '网格视图同步优化：取消 620px 最小宽度限制（手机窄屏不再必须左右横滑），每小时高度改为在总高 520px 的约束下按跨度自适应压缩，排满一天也能把整周收进一屏',
+      '渲染后按实际像素宽度自动降级标签：色块放不下时先隐去次要信息（地点、起止时间），只保留名称，避免出现被裁掉一半的字',
+      '行首给出当天总时长，配合下方时间预算统计，可以快速判断哪几天被占满、哪几天还能安排训练或学习'
+    ]},
     {ver:'v3.0',date:'2026-09-28',items:[
       '新增「课表」模块：按周查看与管理时间安排，支持随时新增、修改、删除，一眼看清每天几点到几点有什么事情',
       '两种重复方式：「每周重复」用于固定班表与常规课程，改一次就一直生效；「仅某一天」用于临时接货、补课这类单次事项，不会污染常规安排',
