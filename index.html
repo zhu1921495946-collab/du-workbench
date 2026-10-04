@@ -3719,6 +3719,7 @@ function renderSchedule(){
      '</div>';
   h+='<div class="sch-tools">'+
       '<button class="btn sm" onclick="schAdd()">'+si('plus')+' 新增事项</button>'+
+      '<button class="btn ghost sm" onclick="schImpOpen()">'+si('doc')+' 粘贴导入班表</button>'+
       '<button class="btn ghost sm" onclick="schReset(true)">载入示例安排</button>'+
      '</div>';
   if(fut.length) h+=schSkipHtml(schOffset);
@@ -3728,7 +3729,7 @@ function renderSchedule(){
          '）已经结束，安排不再展示 —— 避免把过去的排期误当成待办。数据仍保留在备份里。</span>'+
          '<button class="btn ghost sm" onclick="schGo(0)">回到本周</button></div>';
     else
-      h+='<div class="empty">'+si('cal')+'这一周还没有安排。点上方「新增事项」开始。</div>';
+      h+='<div class="empty">'+si('cal')+'这一周还没有安排。点上方「新增事项」加一条，或用「粘贴导入班表」把整周排班一次贴进来。</div>';
   }else{
     h+='<div style="margin-top:12px">'+schListHtml(wk, laid, today)+'</div>';
   }
@@ -3897,6 +3898,209 @@ function schResetDo(seed){
   store.schedule.seeded=true;
   save(); renderSchedule();
   toast(seed? '已载入示例安排':'已清空日程表');
+}
+
+/* ---------- v3.3：粘贴导入班表 ----------
+   为什么要有它：排班表每周都在换，一次十来条；手机上一条条点「新增事项」要填 7 个字段，
+   实际没人坚持得下来。这里把「一行一条」的纯文本直接解析成日程条目。
+
+   行格式（顺序固定，空格 / 竖线分隔，全角半角都行）：
+     日期  时间  地点  事项
+     10/5 周一 14:00-20:30 总统府店 上班
+   · 日期：10/5、10-05、10月5日、2026-10-05；省略年份时按「离今天最近的一次」推断
+   · 时间：14:00-20:30，分隔符可用 - – — ~ 至
+   · 地点可省略；时间之后只剩一个词时，该词按事项处理
+   · 行尾写「 # 备注内容」可带备注；空行与 # 开头的整行忽略
+   导入的条目一律是「仅某一天」并写明日期 —— 排班按周换，绝不污染其他周。 */
+function schImpDate(tok){
+  let m;
+  if((m=/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/.exec(tok))) return {y:+m[1], mo:+m[2], d:+m[3]};
+  if((m=/^(\d{1,2})[-\/.](\d{1,2})$/.exec(tok))) return {y:0, mo:+m[1], d:+m[2]};
+  if((m=/^(\d{1,2})月(\d{1,2})[日号]?$/.exec(tok))) return {y:0, mo:+m[1], d:+m[2]};
+  return null;
+}
+function schImpTime(tok){
+  const m=/^(\d{1,2}):(\d{2})\s*[-–—~～至]\s*(\d{1,2}):(\d{2})$/.exec(tok);
+  if(!m) return null;
+  const s=(+m[1])*60+(+m[2]), e=(+m[3])*60+(+m[4]);
+  if(s>1440||e>1440) return null;
+  return {s:s, e:e};
+}
+/* 只写了「月/日」时推断年份：默认今年；若这样算出来已过去半年以上，就取明年 */
+function schImpYear(mo, d){
+  if(mo<1||mo>12||d<1||d>31) return null;
+  const now=new Date();
+  for(let k=0;k<2;k++){
+    const y=now.getFullYear()+k;
+    const dt=new Date(y, mo-1, d);
+    if(dt.getMonth()!==mo-1 || dt.getDate()!==d) return null;   /* 2/30、4/31 这类不存在的日期 */
+    if((dt.getTime()-now.getTime())/86400000 >= -180) return y;
+  }
+  return null;
+}
+function schImpColor(title, place, map){
+  const t=String(title==null?'':title), p=String(place==null?'':place);
+  if(/接货|收货|进货|上货|到货|物流/.test(t)) return 'orange';
+  if(p && map && map[p]) return map[p];
+  if(/休息|休假|放假|公休/.test(t)) return 'green';
+  if(/上班|值班|当班|工作/.test(t)) return 'blue';
+  let h=0; const s=t+'|'+p;
+  for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0;
+  return ['blue','green','purple','teal','red'][h%5];
+}
+function schImpParse(text){
+  const res={items:[], errs:[]};
+  const lines=String(text==null?'':text).split(/\r?\n/);
+  const WD={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':7,'天':7};
+  const PAL=['blue','green','purple','teal','red'];
+  const map={}, order=[];
+  for(let li=0; li<lines.length; li++){
+    const no=li+1;
+    let s=String(lines[li]==null?'':lines[li]).replace(/[\u3000\t]/g,' ');
+    if(!s.trim() || s.trim().charAt(0)==='#') continue;
+    let note='';
+    const hi=s.indexOf(' # ');
+    if(hi>=0){ note=s.slice(hi+3).replace(/[｜|]/g,' ').trim(); s=s.slice(0,hi); }
+    s=s.replace(/[｜|,，]/g,' ').trim();
+    const toks=s.split(/\s+/).filter(function(x){ return x!==''; });
+    let wd=null; const rest=[];
+    for(let i=0;i<toks.length;i++){
+      const m=/^[（(]?(?:周|星期)([一二三四五六日天])[)）]?$/.exec(toks[i]);
+      if(m && wd==null){ wd={n:WD[m[1]], ch:m[1]}; } else { rest.push(toks[i]); }
+    }
+    let di=-1, d=null;
+    for(let i=0;i<rest.length;i++){ const x=schImpDate(rest[i]); if(x){ di=i; d=x; break; } }
+    if(!d){ res.errs.push('第 '+no+' 行：没找到日期 → '+s); continue; }
+    let ti=-1, t=null;
+    for(let i=0;i<rest.length;i++){ const x=schImpTime(rest[i]); if(x){ ti=i; t=x; break; } }
+    if(!t){ res.errs.push('第 '+no+' 行：没找到时间段（写成 14:00-20:30）→ '+s); continue; }
+    if(t.e<=t.s){ res.errs.push('第 '+no+' 行：结束时间要晚于开始时间 → '+s); continue; }
+    const y=d.y || schImpYear(d.mo, d.d);
+    if(!y){ res.errs.push('第 '+no+' 行：日期 '+d.mo+'/'+d.d+' 不存在 → '+s); continue; }
+    const dt=new Date(y, d.mo-1, d.d);
+    const dow=(dt.getDay()+6)%7;
+    if(wd && wd.n!==dow+1){
+      res.errs.push('第 '+no+' 行：'+d.mo+'/'+d.d+' 是'+SCH_DAYS[dow]+'，与写的「周'+wd.ch+'」不符 → '+s);
+      continue;
+    }
+    const tail=[];
+    for(let i=0;i<rest.length;i++){ if(i!==di && i!==ti) tail.push(rest[i]); }
+    let place='', title='';
+    if(tail.length>=2){ place=tail[0]; title=tail.slice(1).join(' '); }
+    else if(tail.length===1){ title=tail[0]; }
+    if(!title){ res.errs.push('第 '+no+' 行：缺事项名称（如「上班」「接货」）→ '+s); continue; }
+    if(place && !map[place]){ map[place]=PAL[order.length % PAL.length]; order.push(place); }
+    const ds=y+'-'+String(d.mo).padStart(2,'0')+'-'+String(d.d).padStart(2,'0');
+    res.items.push({
+      id:'imp'+ds.replace(/-/g,'')+String(res.items.length+1).padStart(2,'0')+Math.random().toString(36).slice(2,6),
+      day:dow+1, start:schHM(t.s), end:schHM(t.e), title:title, place:place,
+      color:schImpColor(title, place, map), repeat:'once', date:ds, skip:[], note:note
+    });
+  }
+  /* 同一行写重了只留一条 */
+  const seen={}, out=[];
+  for(let i=0;i<res.items.length;i++){
+    const x=res.items[i], k=(x.date+'|'+x.start+'|'+x.end+'|'+x.title+'|'+x.place);
+    if(seen[k]) continue;
+    seen[k]=1; out.push(x);
+  }
+  res.items=out;
+  return res;
+}
+/* 某个日期落在第几周（相对本周的偏移）—— 导入后直接跳到那一周，不用手动翻 */
+function schOffsetForDate(ds){
+  const p=String(ds==null?'':ds).slice(0,10).split('-');
+  if(p.length!==3) return schOffset;
+  const d=new Date(+p[0], (+p[1])-1, +p[2]);
+  if(isNaN(d.getTime())) return schOffset;
+  d.setHours(0,0,0,0);
+  const dow=(d.getDay()+6)%7;
+  const mon=new Date(d); mon.setDate(d.getDate()-dow); mon.setHours(0,0,0,0);
+  return Math.round((mon.getTime()-schWeek(0).mon.getTime())/(7*86400000));
+}
+function schImpOpen(){
+  const n=((store.schedule&&store.schedule.items)||[]).length;
+  let h='<h3>粘贴导入班表</h3>';
+  h+='<div style="font-size:12px;color:var(--muted);line-height:1.75;margin-bottom:8px">'+
+     '一行一条，顺序固定：<b>日期 时间 地点 事项</b><br>'+
+     '例：<b>10/5 周一 14:00-20:30 总统府店 上班</b><br>'+
+     '· 日期可写 10/5、10-05、10月5日、2026-10-05（省略年份按离今天最近的一次算）<br>'+
+     '· 时间段写成 14:00-20:30；地点可省略<br>'+
+     '· 行尾写 <b># 备注内容</b> 可加备注；空行与 # 开头的整行忽略<br>'+
+     '导入的条目都是「仅某一天」并写明日期：排班表按周换，不会跑到别的周去。'+
+     '日程表当前已有 '+n+' 条安排。</div>';
+  h+='<div class="field"><label>班表文本</label><textarea id="schImpT" rows="9" style="width:100%;font-size:12px" '+
+     'placeholder="10/5 周一 14:00-20:30 总统府店 上班&#10;10/5 周一 07:00-10:00 锦创店 上班"></textarea></div>';
+  h+='<div id="schImpPv" style="font-size:12px;color:var(--muted);margin:8px 0 2px;line-height:1.8">粘贴后这里会显示解析结果</div>';
+  h+='<div class="flex wrap" style="gap:8px;margin-top:10px">'+
+     '<button class="btn" onclick="schImpDo(false)">导入（追加）</button>'+
+     '<button class="btn danger" onclick="schImpDo(true)">清空后导入</button>'+
+     '<button class="btn ghost" onclick="closeModal()">取消</button></div>';
+  showModal(h);
+  const t=$('#schImpT');
+  if(t && t.addEventListener){ t.addEventListener('input', schImpPreview); }
+}
+function schImpPreview(){
+  const el=$('#schImpT'), pv=$('#schImpPv');
+  if(!el || !pv) return null;
+  const r=schImpParse(el.value);
+  let h;
+  if(!r.items.length && !r.errs.length){ h='粘贴后这里会显示解析结果'; }
+  else{
+    h='<b>识别到 '+r.items.length+' 条</b>';
+    if(r.items.length){
+      h+='<div style="margin-top:4px">'+r.items.slice(0,14).map(function(x){
+        return '<span style="display:inline-block;margin:2px 8px 2px 0">'+x.date.slice(5)+' '+
+          SCH_DAYS[x.day-1]+' '+x.start+'–'+x.end+' '+esc(x.title)+(x.place? ' · '+esc(x.place):'')+'</span>';
+      }).join('')+(r.items.length>14? ' …':'')+'</div>';
+    }
+    if(r.errs.length){
+      h+='<div style="margin-top:6px;color:#c5543f">'+r.errs.slice(0,6).map(function(x){ return '· '+esc(x); }).join('<br>')+
+         (r.errs.length>6? '<br>· … 另有 '+(r.errs.length-6)+' 行':'')+'</div>';
+    }
+  }
+  pv.innerHTML=h;
+  return h;
+}
+function schImpDo(clearFirst){
+  const el=$('#schImpT');
+  const r=schImpParse(el? el.value : '');
+  if(!r.items.length){ toast(r.errs.length? '没有可导入的行，请按下方提示修改' : '先粘贴班表文本'); return; }
+  if(clearFirst){
+    const n=((store.schedule&&store.schedule.items)||[]).length;
+    showModal2('<h3>清空后导入？</h3><p style="color:var(--muted)">会先删除日程表现有的全部 '+n+
+      ' 条安排，再写入这 '+r.items.length+' 条。删除不可撤销。</p>'+
+      '<div class="flex" style="gap:8px;margin-top:14px">'+
+      '<button class="btn danger" onclick="schImpApply(true)">确认清空并导入</button>'+
+      '<button class="btn ghost" onclick="closeModal2()">取消</button></div>');
+    return;
+  }
+  schImpApply(false);
+}
+function schImpApply(clearFirst){
+  const el=$('#schImpT');
+  const r=schImpParse(el? el.value : '');
+  if(!r.items.length){ toast('没有可导入的行'); return 0; }
+  if(!store.schedule || typeof store.schedule!=='object') store.schedule={items:[], seeded:true};
+  if(!Array.isArray(store.schedule.items)) store.schedule.items=[];
+  if(clearFirst) store.schedule.items=[];
+  const arr=store.schedule.items;
+  const key=function(x){ return x.date+'|'+x.start+'|'+x.end+'|'+(x.title||'')+'|'+(x.place||''); };
+  const have={};
+  arr.forEach(function(x){ if(x && x.date) have[key(x)]=1; });
+  let added=0, skip=0;
+  r.items.forEach(function(x){
+    const k=key(x);
+    if(have[k]){ skip++; return; }
+    have[k]=1; x.skip=[]; arr.push(x); added++;
+  });
+  store.schedule.seeded=true;
+  save();
+  if(added && r.items[0].date) schOffset=schOffsetForDate(r.items[0].date);
+  closeModal(); closeModal2();
+  renderSchedule();
+  toast('已导入 '+added+' 条'+(skip? '，跳过重复 '+skip+' 条':'')+(r.errs.length? '，另有 '+r.errs.length+' 行未识别':''));
+  return added;
 }
 
 function renderTodo(){
@@ -4933,7 +5137,7 @@ const HELP={
   ai:'AI 帮手提供训练安排、护肤方案、英语口语、记账省钱四类能力。点快捷问题或自行输入，回复基于你的本地设定生成，不上传数据。',
   skin:'护肤页除每日打卡外，还有「深度管理」：皮肤诊断、晨晚周护理流程、产品库（点选今日已用）、成分/药品参考、月度预算跟踪。刷酸务必从低浓度、隔天起步。',
   finance:'理财页记录每日储蓄与支出（餐饮/护肤/通勤/零食/额外）。单笔超过“大额提醒阈值”会弹窗劝你三思。月底用「报表」看进度。',
-  schedule:'日程表按周展示每天的时间段与对应事项：按天分块列出每项的起止时间、名称、地点与时长，屏幕窄时无需横向滚动。已过去的日子会<b>自动隐去</b>，只保留今天及以后 —— 跨过今天，那一天的安排就不再展示，避免把过去的排期误当成还要做的事；数据仍完整保留在备份里。翻到已经结束的那一周，会出现「回到本周」的提示。点任意条目即可修改，点「暂无安排」那一行可直接在该天添加，也能用上方「新增事项」指定星期与时段。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。',
+  schedule:'日程表按周展示每天的时间段与对应事项：按天分块列出每项的起止时间、名称、地点与时长，屏幕窄时无需横向滚动。已过去的日子会<b>自动隐去</b>，只保留今天及以后 —— 跨过今天，那一天的安排就不再展示，避免把过去的排期误当成还要做的事；数据仍完整保留在备份里。翻到已经结束的那一周，会出现「回到本周」的提示。点任意条目即可修改，点「暂无安排」那一行可直接在该天添加，也能用上方「新增事项」指定星期与时段。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。排班表每周都在换、一次十来条，一条条手填太慢 —— 用「粘贴导入班表」把「日期 时间 地点 事项」逐行贴进去，一次全部写完；导入的都是「仅某一天」并写明日期，只落在写明的日期上，不会跑到别的周去，同一天不同门店的班次会自动分色。',
   food:'饮食页只回答一个问题：今天该吃多少。四层从上往下读 —— ① 全天目标：热量、蛋白质、脂肪、碳水，以及安全下限；② 四餐分配：早餐 / 午餐 / 加餐 / 晚餐各自该吃多少克、占全天多少比例；③ 食材换算与餐盘：点选食材进盘，按「份」或按克填报，实时对账当餐还剩多少，也能用剩余额度反推某种食材还能吃多少克；④ 食材库与口径说明。所有数字都由「每日热量缺口」一处派生，改基准只会改一个数，其余自动跟着走。'
 };
 function showHelp(key){
@@ -4952,6 +5156,13 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v3.3',date:'2026-10-04',items:[
+      '日程表新增「粘贴导入班表」：按「日期 时间 地点 事项」一行一条，整周排班一次贴进去就录完。排班表每周都在换、一次十来条，手机上一条条点「新增事项」要填 7 个字段，实际没人坚持得下来',
+      '导入的条目一律是「仅某一天」并写明日期，只落在写明的日期上，不会污染其他周；同一天不同门店的班次按地点自动分色，一眼能分清上午在哪个店、下午在哪个店',
+      '解析会校验「日期」与「星期」是否对得上（写「周一」但那天实际是周二会直接指出来），并在导入前给出逐条预览，避免把整周的班录错一天',
+      '提供「导入（追加）」与「清空后导入」两种方式；与已有安排重复的条目自动跳过并告知数量；导入后自动跳到班表所在的那一周',
+      '载入示例安排的确认文案同步说明：「接货」标注在周二与周六，具体门店以实际排班为准'
+    ]},
     {ver:'v3.2',date:'2026-09-28',items:[
       '「课表」更名为「日程表」，模块名与它的实际作用对齐',
       '日程表收敛为单一「清单」视图，移除「网格」与「全景」两个图形视图：清单按天分块、竖着读最清楚，手机窄屏不必横向滚动。两个图形视图的完整实现留在 git 提交 6c7d085 / fea3560 中，代码里也保留了扩展点注释，将来需要可整块恢复',
