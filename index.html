@@ -222,7 +222,46 @@
     border:1px solid #cfe0f6; border-radius:12px; background:#eaf2fd; font-size:12.5px; line-height:1.6;}
   .sch-undo b{color:var(--text);}
   .sch-undo button{margin-left:auto;}
-  @media (max-width:560px){ .sch-stat{grid-template-columns:repeat(2,1fr);} .sch-range{width:100%; margin-left:0;} }
+
+  /* ==================================================================
+     v3.7 待识别班表（拍摄 / 选图存档）
+     定位：识别本身不放进应用里做 —— 工作台是单文件、离线可用的应用，
+           内联一个识别引擎要 +10~16 兆、直接毁掉「一个 HTML 文件」这个形态；
+           走云端识别则必须把密钥写进页面，等于谁看源码谁能用。
+           所以这里只做可靠的那一半：「把图拍下来、存好、记成待办」，
+           识别交给把图发给助手，识别出的文本再用「粘贴导入班表」贴回来。
+     边界：图片只写本机 localStorage，不发任何网络请求。
+     ================================================================== */
+  .sq-tools{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px;}
+  .sq-tools .sq-use{margin-left:auto; font-size:10.5px; color:var(--muted); white-space:nowrap;}
+  .sq-list{display:flex; flex-direction:column; gap:9px; margin-top:11px;}
+  .sq-it{display:flex; gap:10px; align-items:flex-start; padding:9px; border:1px solid var(--line);
+    border-radius:12px; background:rgba(255,255,255,.62);}
+  .sq-it.done{opacity:.6;}
+  .sq-thumb{flex:0 0 auto; width:66px; height:66px; border-radius:9px; overflow:hidden; cursor:pointer;
+    background:#eef2f7; border:1px solid var(--line);}
+  .sq-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .sq-main{flex:1; min-width:0;}
+  .sq-top{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .sq-st{font-size:10.5px; font-weight:800; padding:1px 7px; border-radius:8px; white-space:nowrap;}
+  .sq-st.todo{background:rgba(224,147,47,.16); color:#8a5410;}
+  .sq-st.done{background:rgba(79,157,105,.16); color:#2f6b47;}
+  .sq-nm{font-size:12px; font-weight:700; color:var(--text); max-width:150px; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap;}
+  .sq-meta{margin-left:auto; font-size:10.5px; color:var(--muted); white-space:nowrap;}
+  .sq-note{width:100%; margin-top:6px; font-size:12px; font-family:inherit; padding:5px 8px;
+    border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--text);}
+  .sq-acts{display:flex; gap:6px; flex-wrap:wrap; margin-top:7px;}
+  .sq-acts .btn{padding:3px 9px; font-size:11px;}
+  .sq-badge{display:flex; align-items:flex-start; gap:7px; margin-top:10px; padding:9px 11px;
+    border-radius:10px; background:rgba(251,239,198,.55); border-left:3px solid #e0932f;
+    font-size:12.5px; color:#7a5d10; cursor:pointer; line-height:1.55;}
+  .sq-badge b{color:#5e4709;}
+  @media (max-width:560px){
+    .sch-stat{grid-template-columns:repeat(2,1fr);} .sch-range{width:100%; margin-left:0;}
+    .sq-thumb{width:56px; height:56px;}
+    .sq-nm{max-width:104px;}
+  }
   .empty svg.ico{width:32px; height:32px; color:var(--line); margin-bottom:8px; display:block; margin-left:auto; margin-right:auto;}
   .toast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:#27302d; color:#fff;
     padding:11px 18px; border-radius:22px; font-size:13px; z-index:99; opacity:0; transition:.25s; max-width:88%;}
@@ -851,6 +890,9 @@ function def(){
     days:{}, inspiration:{saved:[]}, reviews:{}, reminders:{}, cache:{}, lastFetch:{}, todos:[], inbox:[], goals:[],
     /* 日程表（v3.0）：首次使用预置一份示例安排，用户可随时改删；seeded 标记避免删空后又被自动补回 */
     schedule:{items:schSeedItems(), seeded:true},
+    /* 待识别班表（v3.7）：拍摄 / 选图后先存在这里。图片只写本机、不发网络请求；
+       识别靠把图发给助手，识别出的文本再用「粘贴导入班表」贴回来。 */
+    scanQueue:[],
     meds:[], tips:[], tipsGen:null,
     game:{xp:0, alias:'渡尘客', level:1, history:{}, bossXp:0, streak:0, lastDay:'', justLeveled:false}
   };
@@ -884,6 +926,9 @@ function ensureV3(s){
   if(!s.schedule||typeof s.schedule!=='object'||Array.isArray(s.schedule)){ s.schedule={items:schSeedItems(), seeded:true}; ch=true; }
   if(!Array.isArray(s.schedule.items)){ s.schedule.items=[]; ch=true; }
   if(s.schedule.seeded==null) s.schedule.seeded=true;
+  /* 待识别班表（v3.7）：这里只保证它是数组。条数上限与体积预算交给 sqPush 守，
+     老备份里若真带了图，也不在这一步擅自删用户的东西。 */
+  if(!Array.isArray(s.scanQueue)){ s.scanQueue=[]; ch=true; }
   /* 减脂模块（2026-09-27 接入）缺失字段补齐：仅补设置，不动历史打卡数据 */
   if(s.dietStartJin==null){ s.dietStartJin=170; ch=true; }
   if(s.dietTargetJin==null){ s.dietTargetJin=150; ch=true; }
@@ -1010,7 +1055,9 @@ const ICONS={
   flame:'<path d="M12 22c4 0 7-2.8 7-6.6 0-4.6-4.1-6.6-3-11.4-2.7 1-4.4 3.4-4.4 5.6 0 1.5-1.1 1.9-1.8 1.1-.9-1-1-2.3-1-2.3-1.4 1.6-2.8 4-2.8 7 0 3.8 3 6.6 7 6.6z"/>',
   scale:'<path d="M12 3v3M7 6h10l3 7a4 4 0 0 1-8 0zM3 6h4l3 7a4 4 0 0 1-8 0z"/><path d="M12 20h.01"/>',
   chev:'<path d="M6 9l6 6 6-6"/>',
-  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h3M13 14h3M8 17.5h3"/>'
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h3M13 14h3M8 17.5h3"/>',
+  camera:'<path d="M3 8.6A2.6 2.6 0 0 1 5.6 6h1.1a1 1 0 0 0 .83-.45l.74-1.1A1 1 0 0 1 9.1 4h5.8a1 1 0 0 1 .83.45l.74 1.1A1 1 0 0 0 17.3 6h1.1A2.6 2.6 0 0 1 21 8.6v8.8A2.6 2.6 0 0 1 18.4 20H5.6A2.6 2.6 0 0 1 3 17.4z"/><circle cx="12" cy="12.6" r="3.5"/>',
+  image:'<rect x="3" y="4.5" width="18" height="15" rx="2.4"/><circle cx="8.6" cy="9.6" r="1.7"/><path d="M3.6 17.4l4.3-4.2a1.6 1.6 0 0 1 2.2 0l3 2.9 2-1.9a1.6 1.6 0 0 1 2.2 0l3.1 3"/>'
 };
 function si(n,cls){ return '<svg class="ico '+(cls||'')+'" viewBox="0 0 24 24">'+(ICONS[n]||'')+'</svg>'; }
 
@@ -3847,6 +3894,7 @@ function renderSchedule(){
   h+='<div class="sch-tools">'+
       '<button class="btn sm" onclick="schAdd()">'+si('plus')+' 新增事项</button>'+
       '<button class="btn ghost sm" onclick="schImpOpen()">'+si('doc')+' 粘贴导入班表</button>'+
+      '<button class="btn ghost sm" onclick="sqPick(\'cam\')">'+si('camera')+' 拍班表</button>'+
       '<button class="btn ghost sm" onclick="schReset(true)">载入示例安排</button>'+
      '</div>';
   h+=schUndoBarHtml();   /* v3.6：刚导入完的整批撤回入口，签名对不上会自己消失 */
@@ -3863,6 +3911,7 @@ function renderSchedule(){
   }
   h+='</div>';
   if(fut.length) h+=schStatHtml(schInsight(fut), true);
+  h+=sqCardHtml();          /* v3.7：拍下来的班表先存在这里，识别后再导入 */
   h+=schManageHtml();
   const p=$('#p-schedule'); if(p) p.innerHTML=h;
   return h;
@@ -3876,6 +3925,7 @@ function schTodayCard(){
   if(!list.length){
     h+='<div class="sub">今天没有排班或课程，时间可以自由安排。</div>'+
        '<div style="margin-top:8px"><button class="btn ghost sm" onclick="switchTab(\'schedule\')">'+si('cal')+' 打开日程表</button></div>';
+    h+=sqBadgeHtml();
   }else{
     const st=schStoresOf(list);
     h+='<div class="sub">'+(st.length? '今天在 '+schStoreTags(st)+' · ':'')+
@@ -3891,6 +3941,7 @@ function schTodayCard(){
     });
     h+='</div><div style="margin-top:9px"><button class="btn ghost sm" onclick="switchTab(\'schedule\')">'+si('cal')+' 查看整周</button></div>';
   }
+  h+=sqBadgeHtml();   /* v3.7：有待识别班表时，首屏就给一条可点的提醒 */
   h+='</div>';
   return h;
 }
@@ -4474,6 +4525,269 @@ function schImpApply(clearFirst){
   toast(msg);
   return added;
 }
+
+/* ================= v3.7 待识别班表（拍摄 / 选图存档） =================
+   为什么识别不放进应用里做：工作台是单文件、离线可用的应用。内联一个本地识别
+   引擎要 +10~16 兆，直接毁掉「一个 HTML 文件」这个形态；走云端识别则必须把
+   密钥写进页面 —— 谁打开源码谁就能拿到。所以这里只做可靠的那一半：
+   「把图拍下来、存好、记成待办」，识别交给把图发给助手，识别出的文本再用
+   「粘贴导入班表」贴回来，形成闭环。
+   边界：图片只写本机 localStorage，不发任何网络请求；换设备前先导出备份。 */
+const SQ_MAX=6;              /* 队列最多几张 —— 再多也认不完，不如先把已有的处理掉 */
+const SQ_BUDGET=1000*1024;   /* 图片 base64 的字符总量上限，给其余数据留足配额 */
+const SQ_EDGE=900;           /* 存档图最长边（像素）：够看清班表表格，又不吃光配额 */
+let sqSaveT=null;            /* 备注输入的写盘防抖句柄 */
+
+function sqArr(){ if(!Array.isArray(store.scanQueue)) store.scanQueue=[]; return store.scanQueue; }
+function sqBytes(){
+  return sqArr().reduce(function(n,x){ return n+((x&&x.img)? String(x.img).length : 0); },0);
+}
+function sqTodoN(){ return sqArr().filter(function(x){ return x && x.st!=='done'; }).length; }
+function sqId(){ return 'q'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function sqStamp(){
+  const d=new Date(), p=function(n){ return String(n).padStart(2,'0'); };
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function sqName(n){
+  let s=String(n==null?'':n).replace(/[\\/]+/g,' ').trim();
+  if(!s) s='班表图片';
+  return s.length>28? s.slice(0,26)+'…' : s;
+}
+/* 占用一律用「兆」并保留一位小数：KB 级零头不值得占版面，也不便于横向比较 */
+function sqFmtSize(n){ n=Math.max(0,+n||0); return (n/1024/1024).toFixed(1)+' 兆'; }
+function sqIdx(id){
+  const arr=sqArr(); id=String(id==null?'':id);
+  for(let i=0;i<arr.length;i++){ if(arr[i] && arr[i].id===id) return i; }
+  return -1;
+}
+function sqFind(id){ const i=sqIdx(id); return i<0? null : sqArr()[i]; }
+/* 按「条数 + 总量」截断（导入备份后调用）。返回被丢弃的条数。 */
+function sqTrim(arr){
+  if(!Array.isArray(arr)) return 0;
+  let drop=0, total=0;
+  while(arr.length>SQ_MAX){ arr.pop(); drop++; }
+  for(let i=0;i<arr.length;i++){ total+=String((arr[i]&&arr[i].img)||'').length; }
+  while(arr.length && total>SQ_BUDGET){
+    const x=arr.pop(); total-=String((x&&x.img)||'').length; drop++;
+  }
+  return drop;
+}
+/* 入队。做成纯函数是为了回归测试能直接构造条目、绕开 FileReader / canvas。
+   命中条数上限、超出体积预算、或没有图时返回 null —— 绝不半途写入。 */
+function sqPush(o){
+  o=o||{};
+  const img=String(o.img==null?'':o.img);
+  if(!img) return null;
+  const arr=sqArr();
+  if(arr.length>=SQ_MAX) return null;
+  if(sqBytes()+img.length>SQ_BUDGET) return null;
+  const it={ id:o.id? String(o.id) : sqId(), at:o.at? String(o.at) : sqStamp(),
+             name:sqName(o.name), note:String(o.note==null?'':o.note).slice(0,80),
+             img:img, st:(o.st==='done'? 'done':'todo') };
+  arr.push(it);
+  return it;
+}
+/* 压缩：最长边缩到 SQ_EDGE、转 JPEG。返回 dataURL；读不出图时给 null + 原因。
+   先铺白底再画 —— 不铺的话，带透明通道的 PNG 转 JPEG 会把透明区压成黑色。 */
+function sqShrink(dataUrl, cb){
+  let done=false;
+  const fin=function(u,e){ if(done) return; done=true; cb&&cb(u||null, e||null); };
+  try{
+    if(typeof Image==='undefined' || typeof document==='undefined' || !document.createElement){
+      fin(null,'no-canvas'); return;
+    }
+    const img=new Image();
+    img.onload=function(){
+      try{
+        const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+        if(!w||!h){ fin(null,'bad-size'); return; }
+        const k=Math.min(1, SQ_EDGE/Math.max(w,h));
+        const cw=Math.max(1,Math.round(w*k)), ch=Math.max(1,Math.round(h*k));
+        const cv=document.createElement('canvas');
+        if(!cv || !cv.getContext){ fin(null,'no-canvas'); return; }
+        cv.width=cw; cv.height=ch;
+        const ctx=cv.getContext('2d');
+        if(!ctx){ fin(null,'no-ctx'); return; }
+        ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,cw,ch);
+        ctx.drawImage(img,0,0,cw,ch);
+        fin(cv.toDataURL('image/jpeg',0.72), null);
+      }catch(e){ fin(null,e); }
+    };
+    img.onerror=function(){ fin(null,'decode'); };
+    img.src=dataUrl;
+  }catch(e){ fin(null,e); }
+}
+/* 读一个文件 → 压缩 → 入队。任何一步失败都给出看得懂的中文原因，不静默丢图。 */
+function sqReadOne(file, cb){
+  const done=function(ok,why){ cb&&cb(!!ok, why||''); };
+  try{
+    if(!file || typeof FileReader==='undefined'){ done(false,'读不到文件'); return; }
+    const ty=String(file.type||''), nm=String(file.name||'');
+    if(ty.indexOf('image/')!==0 && !/\.(jpe?g|png|webp|heic|bmp|gif)$/i.test(nm)){ done(false,'不是图片文件'); return; }
+    const rd=new FileReader();
+    rd.onload=function(){
+      sqShrink(rd.result, function(url,err){
+        if(!url){ done(false, err==='no-canvas'? '这台设备不支持压缩图片' : '图片读不出来'); return; }
+        if(!sqPush({img:url, name:nm})){ done(false,'队列已满或空间不够'); return; }
+        done(true,'');
+      });
+    };
+    rd.onerror=function(){ done(false,'文件读取失败'); };
+    rd.readAsDataURL(file);
+  }catch(e){ done(false,'处理出错'); }
+}
+/* 批量入队：先按剩余名额截取，避免一次选 20 张时逐个弹错刷屏 */
+function sqIngest(files){
+  const n=files? files.length : 0;
+  if(!n) return 0;
+  const room=SQ_MAX-sqArr().length;
+  if(room<=0){ toast('待识别队列已满（最多 '+SQ_MAX+' 张），先处理或删掉几张'); return 0; }
+  const take=Math.min(n,room);
+  let left=take, ok=0, firstWhy='';
+  for(let i=0;i<take;i++){
+    sqReadOne(files[i], function(good,why){
+      if(good) ok++; else if(!firstWhy) firstWhy=why;
+      left--;
+      if(left>0) return;
+      save(); sqRerender();
+      let m = ok? '已存入 '+ok+' 张班表' : '没能存入图片';
+      if(!ok && firstWhy) m+='（'+firstWhy+'）';
+      else if(n>take) m+='，另有 '+(n-take)+' 张超出上限未加入';
+      toast(m);
+    });
+  }
+  return take;
+}
+/* 触发系统选择：cam 调相机拍照，lib 从相册 / 文件夹选；都支持多选 */
+function sqPick(mode){
+  const el=$('#sqFile');
+  if(!el) return;
+  try{
+    if(mode==='cam') el.setAttribute('capture','environment');
+    else el.removeAttribute('capture');
+    el.value='';
+    el.click();
+  }catch(e){ toast('这台设备不支持直接拍照，请改用「从相册选」'); }
+}
+function sqOnFile(el){
+  if(!el || !el.files) return 0;
+  return sqIngest(el.files);
+}
+
+/* ---------- 渲染 ---------- */
+function sqItemHtml(it){
+  const id=esc(it.id), done=it.st==='done';
+  let h='<div class="sq-it'+(done?' done':'')+'">';
+  h+='<div class="sq-thumb" onclick="sqView(\''+id+'\')" title="点开看大图"><img src="'+esc(it.img)+'" alt="班表"></div>';
+  h+='<div class="sq-main">';
+  h+='<div class="sq-top">';
+  h+='<span class="sq-st '+(done?'done':'todo')+'">'+(done?'已录入':'待识别')+'</span>';
+  h+='<span class="sq-nm">'+esc(it.name||'班表图片')+'</span>';
+  h+='<span class="sq-meta">'+esc(it.at||'')+'</span>';
+  h+='</div>';
+  h+='<input class="sq-note" type="text" maxlength="80" placeholder="备注，例如「10 月第 2 周班表」" value="'+esc(it.note||'')+'" oninput="sqNote(\''+id+'\',this.value)">';
+  h+='<div class="sq-acts">';
+  h+='<button class="btn ghost" onclick="sqSave(\''+id+'\')">保存图片</button>';
+  h+='<button class="btn ghost" onclick="sqToggleDone(\''+id+'\')">'+(done?'标回待识别':'标记已录入')+'</button>';
+  h+='<button class="btn danger" onclick="sqDel(\''+id+'\')">删除</button>';
+  h+='</div></div></div>';
+  return h;
+}
+function sqBodyHtml(){
+  const arr=sqArr();
+  if(!arr.length)
+    return '<div class="empty">'+si('image')+'还没有存进来的班表。点「拍照」或「从相册选」，把排班表先存下来。</div>';
+  let h='<div class="sq-list">';
+  arr.forEach(function(it){ h+=sqItemHtml(it); });
+  h+='</div>';
+  const doneN=arr.length-sqTodoN();
+  if(doneN)
+    h+='<div style="margin-top:10px"><button class="btn ghost sm" onclick="sqClearDone()">'+
+       si('trash')+' 清掉已录入的 '+doneN+' 张</button></div>';
+  return h;
+}
+function sqCardHtml(){
+  const arr=sqArr(), todo=sqTodoN();
+  let h='<div class="card" id="sqCard"><h2>'+si('camera')+'待识别班表'+
+    (arr.length? '<span class="pill '+(todo?'yellow':'green')+'" style="margin-left:auto">'+
+      (todo? todo+' 张待识别':'都已录入')+'</span>' : '')+'</h2>';
+  h+='<div class="sub">把班表<b>先拍下来存这里</b>，再把图发给助手识别，识别出的文本用「粘贴导入班表」贴回来即可。'+
+     '图片只存在本机浏览器、<b>不上传任何服务器</b>，离线也能用；换设备前去「我的 → 数据管理」导出备份。'+
+     '存档图会压到最长边 '+SQ_EDGE+' 像素 —— 够看清表格，又不会把存储配额吃光。</div>';
+  h+='<div class="sq-tools">'+
+      '<button class="btn sm" onclick="sqPick(\'cam\')">'+si('camera')+' 拍照</button>'+
+      '<button class="btn ghost sm" onclick="sqPick(\'lib\')">'+si('image')+' 从相册选</button>'+
+      '<button class="btn ghost sm" onclick="sqOpenImp()">'+si('doc')+' 粘贴导入班表</button>'+
+      '<span class="sq-use">'+(arr.length? arr.length+'/'+SQ_MAX+' 张 · 占用 '+sqFmtSize(sqBytes()) : '最多存 '+SQ_MAX+' 张')+'</span>'+
+     '</div>';
+  h+='<input type="file" id="sqFile" class="hidden" accept="image/*" multiple onchange="sqOnFile(this)">';
+  h+='<div id="sqBody">'+sqBodyHtml()+'</div></div>';
+  return h;
+}
+/* 只重画队列本体 —— 备注输入框就在队列里，整页重绘会让正在打字的人失焦 */
+function sqRender(){ const el=$('#sqBody'); if(el) el.innerHTML=sqBodyHtml(); }
+function sqBadgeHtml(){
+  const n=sqTodoN();
+  if(!n) return '';
+  return '<div class="sq-badge" onclick="switchTab(\'schedule\')">'+si('camera')+
+    '<span>有 <b>'+n+' 张</b>班表还没录入 —— 点这里把图发给助手识别，再用「粘贴导入班表」贴回来。</span></div>';
+}
+/* 计数在卡片标题上，只重画本体的话数字会停在旧值 —— 所以整卡刷新 */
+function sqRerender(){
+  if($('#sqCard')){ renderSchedule(); return; }
+  sqRender();
+}
+
+/* ---------- 交互 ---------- */
+function sqNote(id,val){
+  const it=sqFind(id); if(!it) return;
+  it.note=String(val==null?'':val).slice(0,80);
+  /* 不重绘（否则每敲一个字就失焦），只在停顿后落盘一次 */
+  if(sqSaveT) clearTimeout(sqSaveT);
+  sqSaveT=setTimeout(function(){ sqSaveT=null; save(); },700);
+}
+function sqToggleDone(id){
+  const it=sqFind(id); if(!it) return;
+  it.st=(it.st==='done'? 'todo':'done');
+  save(); sqRerender();
+}
+function sqDel(id){
+  const i=sqIdx(id); if(i<0) return;
+  sqArr().splice(i,1);
+  save(); sqRerender();
+}
+function sqClearDone(){
+  const arr=sqArr();
+  const keep=arr.filter(function(x){ return x && x.st!=='done'; });
+  const n=arr.length-keep.length;
+  if(!n) return;
+  store.scanQueue=keep;
+  save(); sqRerender();
+  toast('已清掉 '+n+' 张已录入的图片');
+}
+function sqView(id){
+  const it=sqFind(id); if(!it) return;
+  showModal('<h3>'+si('image')+' '+esc(it.name||'班表图片')+'</h3>'+
+    '<div class="sub">'+esc(it.at||'')+(it.note? ' · '+esc(it.note) : '')+'</div>'+
+    '<img src="'+esc(it.img)+'" alt="班表" style="width:100%;border-radius:10px;margin-top:8px;background:#fff">'+
+    '<div class="flex wrap" style="gap:8px;margin-top:12px">'+
+      '<button class="btn" onclick="sqSave(\''+esc(it.id)+'\')">保存到本机</button>'+
+      '<button class="btn ghost" onclick="closeModal()">关闭</button></div>');
+}
+function sqSave(id){
+  const it=sqFind(id); if(!it || !it.img) return;
+  try{
+    const a=document.createElement('a');
+    a.href=it.img;
+    a.download='班表-'+(String(it.at||'').replace(/[^\d]/g,'').slice(0,12)||'图片')+'.jpg';
+    if(document.body && document.body.appendChild) document.body.appendChild(a);
+    a.click();
+    if(document.body && document.body.removeChild) document.body.removeChild(a);
+    toast('已保存到本机下载目录');
+  }catch(e){ toast('这台设备不支持直接下载，点开大图后长按保存'); }
+}
+/* 队列 → 识别 → 导入是一条链：这里直接把用户送到粘贴导入面板 */
+function sqOpenImp(){ switchTab('schedule'); schImpOpen(); }
 
 function renderTodo(){
   const list=store.todos||(store.todos=[]);
@@ -5509,7 +5823,7 @@ const HELP={
   ai:'AI 帮手提供训练安排、护肤方案、英语口语、记账省钱四类能力。点快捷问题或自行输入，回复基于你的本地设定生成，不上传数据。',
   skin:'护肤页除每日打卡外，还有「深度管理」：皮肤诊断、晨晚周护理流程、产品库（点选今日已用）、成分/药品参考、月度预算跟踪。刷酸务必从低浓度、隔天起步。',
   finance:'理财页记录每日储蓄与支出（餐饮/护肤/通勤/零食/额外）。单笔超过“大额提醒阈值”会弹窗劝你三思。月底用「报表」看进度。',
-  schedule:'日程表按周展示每天的时间段与对应事项：按天分块列出每项的起止时间、名称、地点与时长，屏幕窄时无需横向滚动。已过去的日子会<b>自动隐去</b>，只保留今天及以后 —— 跨过今天，那一天的安排就不再展示，避免把过去的排期误当成还要做的事；数据仍完整保留在备份里。翻到已经结束的那一周，会出现「回到本周」的提示。点任意条目即可修改，点「暂无安排」那一行可直接在该天添加，也能用上方「新增事项」指定星期与时段。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。排班表每周都在换、一次十来条，一条条手填太慢 —— 用「粘贴导入班表」把「日期 时间 地点 事项」逐行贴进去，一次全部写完；导入的都是「仅某一天」并写明日期，只落在写明的日期上，不会跑到别的周去，同一天不同门店的班次会自动分色。每家门店的名称都会显示成一枚<b>彩色徽标</b>，紧跟在时间后面，扫一眼就知道这一班在哪家店；每天的抬头与「今日安排」也会直接列出当天要去哪几家店，「本周时间预算」里另有「按门店」一行，写明每家店各占多少小时。门店名只从各条目的「地点」字段取，全站同一个来源、同一处渲染，不会出现两种写法。<b>「接货」这类说不准几点的安排可以不填时间段</b> —— 只显示门店与「接货」二字，几点去自己清楚，写死一个时间反而容易被当成硬性安排；在编辑里勾选「只显示事项，不显示具体时间」即可，粘贴导入时直接写「日期 地点 接货」也行。<b>识别出来的条目会先列成一张可修改的清单</b>：日期、时间、门店、事项都能就地改，改完门店名会自动重新分色，仍有问题的条目会标红并在导入时跳过；导入完成页面上会出现「撤销本次导入」，一次撤回整批改动（还没刷新页面的这段时间里有效）。',
+  schedule:'日程表按周展示每天的时间段与对应事项：按天分块列出每项的起止时间、名称、地点与时长，屏幕窄时无需横向滚动。已过去的日子会<b>自动隐去</b>，只保留今天及以后 —— 跨过今天，那一天的安排就不再展示，避免把过去的排期误当成还要做的事；数据仍完整保留在备份里。翻到已经结束的那一周，会出现「回到本周」的提示。点任意条目即可修改，点「暂无安排」那一行可直接在该天添加，也能用上方「新增事项」指定星期与时段。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。排班表每周都在换、一次十来条，一条条手填太慢 —— 用「粘贴导入班表」把「日期 时间 地点 事项」逐行贴进去，一次全部写完；导入的都是「仅某一天」并写明日期，只落在写明的日期上，不会跑到别的周去，同一天不同门店的班次会自动分色。每家门店的名称都会显示成一枚<b>彩色徽标</b>，紧跟在时间后面，扫一眼就知道这一班在哪家店；每天的抬头与「今日安排」也会直接列出当天要去哪几家店，「本周时间预算」里另有「按门店」一行，写明每家店各占多少小时。门店名只从各条目的「地点」字段取，全站同一个来源、同一处渲染，不会出现两种写法。<b>「接货」这类说不准几点的安排可以不填时间段</b> —— 只显示门店与「接货」二字，几点去自己清楚，写死一个时间反而容易被当成硬性安排；在编辑里勾选「只显示事项，不显示具体时间」即可，粘贴导入时直接写「日期 地点 接货」也行。<b>识别出来的条目会先列成一张可修改的清单</b>：日期、时间、门店、事项都能就地改，改完门店名会自动重新分色，仍有问题的条目会标红并在导入时跳过；导入完成页面上会出现「撤销本次导入」，一次撤回整批改动（还没刷新页面的这段时间里有效）。<b>班表可以先拍下来</b>：日程表页的「待识别班表」卡片里点「拍照」或「从相册选」，图片会压缩后存在本机浏览器（不上传、离线可用），并记成一张待办；之后把图发给助手识别，识别出的文本用「粘贴导入班表」贴回来即可。手机上第一次点「拍照」会请求相机权限，允许一次就行；桌面上「从相册选」其实是打开文件选择框。图是存在浏览器里的，换设备前记得先导出备份。',
   food:'饮食页只回答一个问题：今天该吃多少。四层从上往下读 —— ① 全天目标：热量、蛋白质、脂肪、碳水，以及安全下限；② 四餐分配：早餐 / 午餐 / 加餐 / 晚餐各自该吃多少克、占全天多少比例；③ 食材换算与餐盘：点选食材进盘，按「份」或按克填报，实时对账当餐还剩多少，也能用剩余额度反推某种食材还能吃多少克；④ 食材库与口径说明。所有数字都由「每日热量缺口」一处派生，改基准只会改一个数，其余自动跟着走。'
 };
 function showHelp(key){
@@ -5528,6 +5842,15 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v3.7',date:'2026-10-08',items:[
+      '日程表新增「待识别班表」：可以直接<b>拍照</b>或从相册选图把排班表存进来，手机上点「拍照」就调起系统相机',
+      '图片会先压缩到最长边 900 像素再存（够看清表格，又不会把浏览器约 5 兆的存储配额吃光），并且<b>只存在本机浏览器</b>、不上传任何服务器，飞行模式下也能用',
+      '每张图带一条备注（例如「10 月第 2 周班表」）与状态标记：待识别 / 已录入，录完可以一次性清掉已录入的图',
+      '今日页会在有待识别班表时给出可点的提醒，点一下直达日程表 —— 拍完不处理也不会忘',
+      '点缩略图可看大图，大图里能「保存到本机」，方便直接把图发给助手识别',
+      '队列最多 6 张、图片总量设了上限：超了会明确告诉你先处理旧的，不会把存储写满导致其他记录写不进去',
+      '<b>关于「自动识别文字」</b>：没有把识别做进应用里。本地识别要内联一个引擎，体积 +10~16 兆，会毁掉「一个 HTML 文件、离线可用」这个根本形态；云端识别则必须把密钥写进页面，谁看源码谁能用。所以这里只做可靠的那一半 —— 存图与待办 —— 识别交给把图发给助手，识别出的文本用「粘贴导入班表」贴回来，链路同样闭环'
+    ]},
     {ver:'v3.6',date:'2026-10-08',items:[
       '导入班表前，识别结果先列成一张<b>可修改的清单</b>：日期、时间、门店、事项都能就地改，不用为了改一个字把整段文本重贴一遍',
       '清单里改「门店」后会自动重新分色，同一家店始终同色、不同门店必然不同色（与导入时的分色规则同源，不另立一套）',
@@ -5752,6 +6075,10 @@ function dataHealthHtml(){
   let h='<div class="d-health'+(warn?' warn':'')+'">';
   h+='<div class="hrow"><span>存储占用</span><b class="d-ink">'+(inf.bytes/1024).toFixed(0)+' KB</b><span class="muted">／上限约 5 MB（'+inf.pct.toFixed(1)+'%）</span></div>';
   h+='<div class="hrow"><span>上次备份</span>'+(days===null? '<b class="d-ink" style="color:#b4552c">从未备份</b>' : '<b class="d-ink">'+days+' 天前</b>')+'</div>';
+  /* v3.7：待识别班表的图是 base64 大字段，占用必须如实显示 —— 导出备份会一并带上它们 */
+  const sqN=sqArr().length;
+  if(sqN) h+='<div class="hrow"><span>待识别图</span><b class="d-ink">'+sqN+' 张</b><span class="muted">（'+
+    sqFmtSize(sqBytes())+'，'+(sqTodoN()? sqTodoN()+' 张待处理':'都已录入')+'；导出备份会一并带上，介意体积可先清掉已录入的）</span></div>';
   if(lastSaveError) h+='<div class="d-warn" style="margin-top:8px">⚠️ 上次写入本地存储失败（多为存储已满）。请立即导出备份，并清理浏览器中本站的存储。</div>';
   if(corruptSnapshotKey) h+='<div class="d-warn" style="margin-top:8px">检测到一份无法解析的历史数据，已原样留档。若需排查，可在浏览器控制台执行 localStorage.getItem(\''+corruptSnapshotKey+'\')。</div>';
   if(warn && !lastSaveError && !corruptSnapshotKey)
@@ -5792,7 +6119,10 @@ function normalizeImported(src){
   out.settings=Object.assign({}, d.settings, s.settings||{});
   out.days=(s.days && typeof s.days==='object' && !Array.isArray(s.days))? s.days : {};
   ['reviews','reminders','cache','lastFetch'].forEach(k=>{ if(!out[k]||typeof out[k]!=='object'||Array.isArray(out[k])) out[k]=d[k]; });
-  ['todos','inbox','goals','meds','tips'].forEach(k=>{ if(!Array.isArray(out[k])) out[k]=[]; });
+  ['todos','inbox','goals','meds','tips','scanQueue'].forEach(k=>{ if(!Array.isArray(out[k])) out[k]=[]; });
+  /* 待识别班表的图是 base64 大字段：一份超大备份直接接管会把配额挤满、
+     之后所有写入都失败。这里按「条数 + 总量」双重截断，宁可少带几张图。 */
+  sqTrim(out.scanQueue);
   /* 日程表：缺字段时给空容器而不是 undefined —— save()/recordDay() 会遍历这些容器，
      缺了会在导入后直接抛错（历史上就是这么白屏的）。seeded 置 true，导入不覆盖用户自己的安排。 */
   if(!out.schedule||typeof out.schedule!=='object'||Array.isArray(out.schedule)) out.schedule={items:[], seeded:true};
