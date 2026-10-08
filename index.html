@@ -163,6 +163,10 @@
   .sch-tools{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px;}
   .sch-day{border:1px solid var(--line); border-radius:12px; padding:9px 12px; margin-bottom:8px; background:rgba(255,255,255,.5);}
   .sch-day.today{border-color:var(--primary); background:rgba(227,238,252,.55);}
+  /* v3.9：当天排得太满 —— 边框转暖色，跟「今天」的蓝边区分开 */
+  .sch-day.heavy{border-color:#e8c886; background:rgba(250,238,218,.42);}
+  .sch-load{margin-top:7px; padding:5px 8px; border-radius:8px; background:var(--accent-soft); color:#8a5a12; font-size:11.5px; line-height:1.5; display:flex; align-items:flex-start; gap:6px;}
+  .sch-load .ico{flex:0 0 auto; margin-top:1px;}
   .sch-day-h{display:flex; align-items:baseline; gap:8px; font-size:12px; color:var(--muted); flex-wrap:wrap;}
   .sch-day-h b{font-size:14px; color:var(--text);}
   .sch-day-h i{margin-left:auto; font-style:normal; font-size:11px;}
@@ -3700,6 +3704,55 @@ function schDayItems(offset, dow){
 /* 把本周条目按「星期」摊平并排序 —— 清单视图按天取内容时用它。
    原先还做「重叠事项贪心分列」（给网格 / 全景用），v3.2 删掉两个图形视图后
    该计算已无消费方，一并去掉，只保留排序。 */
+/* ---------- v3.9：单日负荷提醒 ----------
+   「时间重叠」（v3.8）抓的是同一天两条安排撞车；这里抓另一种情况：当天排得太满 ——
+   两段班并不重叠，但从早到晚都在外面。两个口径各有各的用处，都要有参照系，
+   所以提示里一定带上具体数字与阈值：
+     · 在岗跨度 = 当天最早开始 → 最晚结束（超过 12 小时提醒）
+     · 在岗总时长 = 当天各段时长之和（超过 10 小时提醒）
+   notime 条目（接货）没有具体时间，不计时长、也不参与跨度 —— 跟冲突检测同一口径，
+   否则「接货」会把跨度整体拉长，天天报警，提醒就没人看了。
+   阈值只在这里定义一处，日后要调只改这两个数。 */
+const SCH_LOAD_SPAN=12*60, SCH_LOAD_MIN=10*60;
+function schDayLoad(list){
+  let min=0, a=null, b=null;
+  (list||[]).forEach(function(x){
+    const it=(x && x.it)? x.it : x;      /* 既能吃 laid 包装项 {it,dow,date}，也能吃裸条目 */
+    if(!it || it.notime) return;
+    const s=schMin(it.start), e=schMin(it.end);
+    if(s!=null && e!=null && e>s) min+=e-s;
+    if(s!=null && (a==null || s<a)) a=s;
+    if(e!=null && (b==null || e>b)) b=e;
+  });
+  return {min:min, span:(a!=null&&b!=null)? (b-a):0, first:a, last:b};
+}
+function schLoadWarn(load){
+  if(!load) return '';
+  if(load.span>SCH_LOAD_SPAN && load.first!=null)
+    return '当天 '+schHM(load.first)+' 到 '+schHM(load.last)+'，在岗跨度 '+schFmt(load.span)+
+           '（超过 '+schFmt(SCH_LOAD_SPAN)+'），留意休息';
+  if(load.min>SCH_LOAD_MIN)
+    return '当天合计 '+schFmt(load.min)+'，超过 '+schFmt(SCH_LOAD_MIN)+'，留意休息';
+  return '';
+}
+/* 导入预览用：只按「勾选了、且没问题」的条目算，哪些天会超负荷。
+   返回一句人话；没超就返回 ''（不占地方）。 */
+function schImpLoadHint(its){
+  const by={};
+  (its||[]).forEach(function(x){
+    if(!x || x.on===false || schImpBad(x)) return;
+    const ds=String(x.date==null? '' : x.date).slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(ds)) return;
+    (by[ds]=by[ds]||[]).push(x);
+  });
+  const out=[];
+  Object.keys(by).sort().forEach(function(ds){
+    const w=schLoadWarn(schDayLoad(by[ds]));
+    if(w) out.push(ds.slice(5).replace('-','/')+' '+w);
+  });
+  if(!out.length) return '';
+  return out.slice(0,2).join('；')+(out.length>2? '；另有 '+(out.length-2)+' 天也偏满':'');
+}
 function schLayoutList(list){
   const out=[];
   list.forEach(function(x){ out.push({it:x.it, dow:x.dow, date:x.date}); });
@@ -3803,13 +3856,15 @@ function schListHtml(wk, laid, today){
     if(wk.keys[i] < today) continue;
     const day=laid.filter(function(x){ return x.dow===i; }).sort(schSortCmp);
     let sum=0; day.forEach(function(x){ sum+=schDur(x.it); });
-    h+='<div class="sch-day'+(wk.keys[i]===today?' today':'')+'">';
+    const ldw=day.length? schLoadWarn(schDayLoad(day)) : '';   /* v3.9：当天排太满就提醒 */
+    h+='<div class="sch-day'+(wk.keys[i]===today?' today':'')+(ldw?' heavy':'')+'">';
     /* v3.4：抬头直接列出当天要去哪几家店 —— 不必读完整天的条目才知道「今天在哪家店」 */
     const st=schStoresOf(day);
     h+='<div class="sch-day-h"><b>'+SCH_DAYS[i]+'</b><span>'+schMd(wk.days[i])+'</span>'+
        (wk.keys[i]===today? '<em style="font-style:normal;color:var(--primary);font-weight:700">今天</em>':'')+
        schStoreTags(st)+
        (day.length? '<i>'+day.length+' 项 · '+schFmt(sum)+'</i>' : '<i class="free">全天空闲</i>')+'</div>';
+    if(ldw) h+='<div class="sch-load">'+si('clock')+'<span>'+esc(ldw)+'</span></div>';
     if(!day.length){
       h+='<div class="sch-li empty" onclick="schAdd('+(i+1)+')"><span class="tm">--:--</span>'+
          '<span class="ttl">暂无安排，点这里添加</span></div>';
@@ -3945,11 +4000,13 @@ function schTodayCard(){
   if(!list.length){
     h+='<div class="sub">今天没有排班或课程，时间可以自由安排。</div>'+
        '<div style="margin-top:8px"><button class="btn ghost sm" onclick="switchTab(\'schedule\')">'+si('cal')+' 打开日程表</button></div>';
-    h+=sqBadgeHtml();
   }else{
     const st=schStoresOf(list);
+    const ldw=schLoadWarn(schDayLoad(list));   /* v3.9：今天排太满，首屏就提醒 */
     h+='<div class="sub">'+(st.length? '今天在 '+schStoreTags(st)+' · ':'')+
-       '共 <b>'+list.length+'</b> 项 · 合计 <b>'+schFmt(sum)+'</b></div><div style="margin-top:7px">';
+       '共 <b>'+list.length+'</b> 项 · 合计 <b>'+schFmt(sum)+'</b></div>'+
+       (ldw? '<div class="sch-load">'+si('clock')+'<span>'+esc(ldw)+'</span></div>':'')+
+       '<div style="margin-top:7px">';
     list.forEach(function(x){
       const c=schColor(x.it.color);
       h+='<div class="sch-li" onclick="switchTab(\'schedule\')">'+
@@ -4342,6 +4399,8 @@ function schImpSumHtml(){
   if(badN) h+='<span class="imp-c" style="background:var(--danger-soft);color:#c5543f">'+badN+' 条有问题</span>';
   const st=schStoresOf(its);
   if(st.length) h+='<span style="margin-left:8px">门店：'+schStoreTags(st)+'</span>';
+  const lh=schImpLoadHint(its);   /* v3.9：勾选的条目里，哪天会排太满 */
+  if(lh) h+='<div class="sch-load" style="margin-top:7px">'+si('clock')+'<span>'+esc(lh)+'</span></div>';
   return h;
 }
 function schImpPanelHtml(){
@@ -4522,8 +4581,9 @@ function schImpOpen(qid){
 function schImpPreview(){
   const el=$('#schImpT'), pv=$('#schImpPv');
   if(!el || !pv) return null;
-  const r=schImpParse(el.value);
-  /* v3.6：文本框一变就按新文本重建草稿（手工改过的单条会被覆盖，面板顶部已写明） */
+  /* v3.6：文本框一变就按新文本重建草稿（手工改过的单条会被覆盖，面板顶部已写明）。
+     ⚠️ 这里只走 schImpMake（内部是 schImpParseAny，JSON 优先）—— 不要再单独调
+        schImpParse 算一遍，那对 JSON 输入是白跑，而且结果没人用。 */
   schImpMake(el.value);
   const h=schImpPanelHtml();
   pv.innerHTML=h;
@@ -6098,7 +6158,7 @@ const HELP={
   ai:'AI 帮手提供训练安排、护肤方案、英语口语、记账省钱四类能力。点快捷问题或自行输入，回复基于你的本地设定生成，不上传数据。',
   skin:'护肤页除每日打卡外，还有「深度管理」：皮肤诊断、晨晚周护理流程、产品库（点选今日已用）、成分/药品参考、月度预算跟踪。刷酸务必从低浓度、隔天起步。',
   finance:'理财页记录每日储蓄与支出（餐饮/护肤/通勤/零食/额外）。单笔超过“大额提醒阈值”会弹窗劝你三思。月底用「报表」看进度。',
-  schedule:'日程表按周展示每天的时间段与对应事项：按天分块列出每项的起止时间、名称、地点与时长，屏幕窄时无需横向滚动。已过去的日子会<b>自动隐去</b>，只保留今天及以后 —— 跨过今天，那一天的安排就不再展示，避免把过去的排期误当成还要做的事；数据仍完整保留在备份里。翻到已经结束的那一周，会出现「回到本周」的提示。点任意条目即可修改，点「暂无安排」那一行可直接在该天添加，也能用上方「新增事项」指定星期与时段。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。排班表每周都在换、一次十来条，一条条手填太慢 —— 用「粘贴导入班表」把「日期 时间 地点 事项」逐行贴进去，一次全部写完；导入的都是「仅某一天」并写明日期，只落在写明的日期上，不会跑到别的周去，同一天不同门店的班次会自动分色。每家门店的名称都会显示成一枚<b>彩色徽标</b>，紧跟在时间后面，扫一眼就知道这一班在哪家店；每天的抬头与「今日安排」也会直接列出当天要去哪几家店，「本周时间预算」里另有「按门店」一行，写明每家店各占多少小时。门店名只从各条目的「地点」字段取，全站同一个来源、同一处渲染，不会出现两种写法。<b>「接货」这类说不准几点的安排可以不填时间段</b> —— 只显示门店与「接货」二字，几点去自己清楚，写死一个时间反而容易被当成硬性安排；在编辑里勾选「只显示事项，不显示具体时间」即可，粘贴导入时直接写「日期 地点 接货」也行。<b>识别出来的条目会先列成一张可修改的清单</b>：日期、时间、门店、事项都能就地改，改完门店名会自动重新分色，仍有问题的条目会标红并在导入时跳过；导入完成页面上会出现「撤销本次导入」，一次撤回整批改动（还没刷新页面的这段时间里有效）。<b>班表可以先拍下来</b>：日程表页的「待识别班表」卡片里点「拍照」或「从相册选」，图片会压缩后存在本机浏览器（不上传、离线可用），并记成一张待办；之后把图发给助手识别，识别出的文本用「粘贴导入班表」贴回来即可。手机上第一次点「拍照」会请求相机权限，允许一次就行；桌面上「从相册选」其实是打开文件选择框。图是存在浏览器里的，换设备前记得先导出备份。<b>识别结果会先进预览页</b>：在「待识别班表」的某张图上点「识别并导入」，把助手的识别结果（JSON 或文本）贴进来，条目会逐条列出来给你核对 —— 每条前面有勾选框，<b>勾上的才会导入</b>；跟已有安排时间重叠的会标黄并默认不勾选，完全重复的会标灰、导入时自动跳过，格式有问题的标红、导入时跳过。确认无误再点「确认导入」，导错了还能整批撤销。助手那边点「复制识别指令」就能拿到该用哪种格式回你。',
+  schedule:'日程表按周展示每天的时间段与对应事项：按天分块列出每项的起止时间、名称、地点与时长，屏幕窄时无需横向滚动。已过去的日子会<b>自动隐去</b>，只保留今天及以后 —— 跨过今天，那一天的安排就不再展示，避免把过去的排期误当成还要做的事；数据仍完整保留在备份里。翻到已经结束的那一周，会出现「回到本周」的提示。点任意条目即可修改，点「暂无安排」那一行可直接在该天添加，也能用上方「新增事项」指定星期与时段。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。排班表每周都在换、一次十来条，一条条手填太慢 —— 用「粘贴导入班表」把「日期 时间 地点 事项」逐行贴进去，一次全部写完；导入的都是「仅某一天」并写明日期，只落在写明的日期上，不会跑到别的周去，同一天不同门店的班次会自动分色。每家门店的名称都会显示成一枚<b>彩色徽标</b>，紧跟在时间后面，扫一眼就知道这一班在哪家店；每天的抬头与「今日安排」也会直接列出当天要去哪几家店，「本周时间预算」里另有「按门店」一行，写明每家店各占多少小时。门店名只从各条目的「地点」字段取，全站同一个来源、同一处渲染，不会出现两种写法。<b>「接货」这类说不准几点的安排可以不填时间段</b> —— 只显示门店与「接货」二字，几点去自己清楚，写死一个时间反而容易被当成硬性安排；在编辑里勾选「只显示事项，不显示具体时间」即可，粘贴导入时直接写「日期 地点 接货」也行。<b>识别出来的条目会先列成一张可修改的清单</b>：日期、时间、门店、事项都能就地改，改完门店名会自动重新分色，仍有问题的条目会标红并在导入时跳过；导入完成页面上会出现「撤销本次导入」，一次撤回整批改动（还没刷新页面的这段时间里有效）。<b>班表可以先拍下来</b>：日程表页的「待识别班表」卡片里点「拍照」或「从相册选」，图片会压缩后存在本机浏览器（不上传、离线可用），并记成一张待办；之后把图发给助手识别，识别出的文本用「粘贴导入班表」贴回来即可。手机上第一次点「拍照」会请求相机权限，允许一次就行；桌面上「从相册选」其实是打开文件选择框。图是存在浏览器里的，换设备前记得先导出备份。<b>识别结果会先进预览页</b>：在「待识别班表」的某张图上点「识别并导入」，把助手的识别结果（JSON 或文本）贴进来，条目会逐条列出来给你核对 —— 每条前面有勾选框，<b>勾上的才会导入</b>；跟已有安排时间重叠的会标黄并默认不勾选，完全重复的会标灰、导入时自动跳过，格式有问题的标红、导入时跳过。确认无误再点「确认导入」，导错了还能整批撤销。助手那边点「复制识别指令」就能拿到该用哪种格式回你。<b>排得太满也会提醒</b>：同一天多条班次即使不重叠，只要在岗跨度超过 12 小时、或合计超过 10 小时，那一天的抬头会转成暖色并写明具体数字（如「07:00 到 20:00，在岗跨度 13 小时」），今日安排与导入预览里同样会提示 —— 「接货」这类不写时间的安排不计入，免得天天报警。',
   food:'饮食页只回答一个问题：今天该吃多少。四层从上往下读 —— ① 全天目标：热量、蛋白质、脂肪、碳水，以及安全下限；② 四餐分配：早餐 / 午餐 / 加餐 / 晚餐各自该吃多少克、占全天多少比例；③ 食材换算与餐盘：点选食材进盘，按「份」或按克填报，实时对账当餐还剩多少，也能用剩余额度反推某种食材还能吃多少克；④ 食材库与口径说明。所有数字都由「每日热量缺口」一处派生，改基准只会改一个数，其余自动跟着走。'
 };
 function showHelp(key){
@@ -6117,6 +6177,13 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v3.9',date:'2026-10-08',items:[
+      '新增<b>单日负荷提醒</b>：同一天多条班次即使不重叠，只要在岗跨度超过 12 小时、或合计超过 10 小时，那一天的抬头会转成暖色并写明具体数字',
+      '负荷提示同时出现在三处：日程表清单的当天抬头、「今日安排」首屏、导入预览的摘要 —— 拍到新班表时，贴进来看一眼就知道哪几天排得太满',
+      '「接货」这类不写时间的安排<b>不计入负荷</b>，跟冲突检测同一口径 —— 否则会把跨度整体拉长，天天报警，提醒就没人看了',
+      '修掉一个显示缺陷：今天没有安排时，「今日安排」上的待识别班表提醒会重复显示两遍',
+      '顺手清掉导入预览里一段没人用的旧解析（对 JSON 输入是白跑一遍）'
+    ]},
     {ver:'v3.8',date:'2026-10-08',items:[
       '日程表的「待识别班表」每张图多了<b>「识别并导入」</b>：把助手的识别结果贴进来，先进入<b>识别结果预览</b>，核对无误再导入',
       '预览页顶部带一条<b>来源追溯</b>：缩略图、文件名、拍摄时间一目了然，点缩略图能看大图，也能直接把图存到本机',
