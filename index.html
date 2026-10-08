@@ -201,6 +201,27 @@
   .sch-past{display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:12px; padding:12px 14px;
     border:1px dashed var(--line); border-radius:12px; background:rgba(255,255,255,.45);
     font-size:13px; line-height:1.6; color:var(--muted);}
+  /* v3.6：导入草稿清单（逐条可改）与撤销条 */
+  .imp-list{margin-top:8px; max-height:46vh; overflow:auto;}
+  .imp-row{border:1px solid var(--line); border-radius:11px; padding:8px 9px; margin-bottom:7px;
+    background:rgba(255,255,255,.55);}
+  .imp-row.bad{border-color:#d98b7c; background:rgba(250,236,231,.7);}
+  .imp-l1,.imp-l2{display:flex; align-items:center; gap:6px;}
+  .imp-l2{margin-top:6px;}
+  .imp-inp{font-family:inherit; font-size:12px; padding:5px 7px; border:1px solid var(--line);
+    border-radius:8px; background:#fff; color:var(--text); width:100%; min-width:0;}
+  .imp-l1 .imp-d{flex:0 0 116px;}
+  .imp-l1 .imp-t{flex:1 1 auto;}
+  .imp-l2 .imp-inp{flex:1 1 0;}
+  .imp-w{flex:0 0 auto; font-size:11px; color:var(--muted); white-space:nowrap;}
+  .imp-x{flex:0 0 auto; border:none; background:transparent; color:#c5543f; font-family:inherit;
+    font-size:15px; line-height:1; padding:0 4px; cursor:pointer;}
+  .imp-err{font-size:11px; color:#c5543f; margin-top:5px;}
+  .imp-err:empty{display:none;}
+  .sch-undo{display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:10px; padding:10px 12px;
+    border:1px solid #cfe0f6; border-radius:12px; background:#eaf2fd; font-size:12.5px; line-height:1.6;}
+  .sch-undo b{color:var(--text);}
+  .sch-undo button{margin-left:auto;}
   @media (max-width:560px){ .sch-stat{grid-template-columns:repeat(2,1fr);} .sch-range{width:100%; margin-left:0;} }
   .empty svg.ico{width:32px; height:32px; color:var(--line); margin-bottom:8px; display:block; margin-left:auto; margin-right:auto;}
   .toast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:#27302d; color:#fff;
@@ -3497,6 +3518,12 @@ const SCH_COLORS=[
    同批删除的常量：SCH_PPH（网格每小时像素上限）、SCH_LBL_MIN / SCH_LBL_GAP（窄块名称外置判定），
    以及只服务于全景的 schDurShort（紧凑时长）/ schHmShort（紧凑时刻） */
 let schOffset=0;    /* 当前查看的周：0=本周，-1=上周，+1=下周 */
+/* v3.6：导入草稿与撤销现场 —— 都是「本次操作」的临时状态，不进 store、不参与备份。
+   草稿让导入前能逐条改；撤销现场让整批导入可撤回。
+   ⚠️ 撤销不靠「在各改动入口记得清理」来失效，而是比对「结构签名」自动失效
+      （见 schUndoBarHtml）—— 少一个入口漏清就是隐患。 */
+let schImpDraft=null;
+let schUndo=null;
 /* 预置安排：按用户描述的实际情况生成（周一~周四 + 周六周日 14:00–20:00 上班；周二 / 周六 20:30 接货）。
    这里只用字面量、不引用任何模块级变量 —— 它会在 load() 期间由 def() 调用，
    那时本文件里其余的 const 还处于暂时性死区（TDZ），一引用就会 ReferenceError。 */
@@ -3809,7 +3836,8 @@ function renderSchedule(){
   let h='<div class="card">';
   h+='<h2>'+si('cal')+'日程表 · 时间安排'+helpBtn('schedule')+'</h2>';
   h+='<div class="sub">按天分块列出每项的时间段、名称、地点与时长，屏幕窄时无需横向滚动。'+
-     '已过去的日子会<b>自动隐去</b>，只保留今天及以后；点任意条目即可修改，点「暂无安排」那一行可直接添加。</div>';
+     '已过去的日子会<b>自动隐去</b>，只保留今天及以后；点任意条目即可修改，点「暂无安排」那一行可直接添加；'+
+     '导入班表后可逐条核对修改，改错了能整批撤回。</div>';
   h+='<div class="sch-nav">'+
       '<button class="btn ghost sm" onclick="schGo(-1)">‹ 上一周</button>'+
       '<button class="btn sm" onclick="schGo(0)">本周</button>'+
@@ -3821,6 +3849,7 @@ function renderSchedule(){
       '<button class="btn ghost sm" onclick="schImpOpen()">'+si('doc')+' 粘贴导入班表</button>'+
       '<button class="btn ghost sm" onclick="schReset(true)">载入示例安排</button>'+
      '</div>';
+  h+=schUndoBarHtml();   /* v3.6：刚导入完的整批撤回入口，签名对不上会自己消失 */
   if(fut.length) h+=schSkipHtml(schOffset);
   if(!visible.length){
     if(laid.length)
@@ -4141,6 +4170,7 @@ function schImpParse(text){
     seen[k]=1; out.push(x);
   }
   res.items=out;
+  res.map=map;   /* v3.6：门店→颜色的映射表一并带出，草稿逐条改过之后重新分色要用 */
   return res;
 }
 /* 某个日期落在第几周（相对本周的偏移）—— 导入后直接跳到那一周，不用手动翻 */
@@ -4154,7 +4184,201 @@ function schOffsetForDate(ds){
   const mon=new Date(d); mon.setDate(d.getDate()-dow); mon.setHours(0,0,0,0);
   return Math.round((mon.getTime()-schWeek(0).mon.getTime())/(7*86400000));
 }
+/* ---------- v3.6：导入前逐条可改 + 导入后整批可撤 ----------
+   为什么：解析十有八九是对的，但只要错一条，原来的流程就得改文本重来一遍，
+   或者带着错条目导入、事后再一条条翻出来删。草稿 + 撤销把这两个坑补上。
+
+   草稿规则（说清楚才不会有意外）：
+   · 文本框内容一变，就按新文本重新解析，草稿里的手工改动会被覆盖 ——
+     想改单条就直接改下面清单，不要再动上面的文本。
+   · 清单里改「门店」后，全表按「门店首次出现顺序」重新分色，保证同一家店始终同色、
+     不同门店必然不同色（与导入时的分色规则同源，不另立一套）。
+   · 时间留空 = 「不显示具体时间」（接货这类）；格式写错则标红并在导入时跳过。
+   · 删条目只重画清单（schImpRender），不重新解析文本 —— 否则刚删的会又冒出来。 */
+function schSig(list){ try{ return JSON.stringify(list||[]); }catch(e){ return ''; } }
+/* 一条草稿是否还能导入；返回 '' 表示没问题，否则返回人话原因 */
+function schImpBad(it){
+  if(!it) return '条目为空';
+  const ds=String(it.date==null? '' : it.date).slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(ds)) return '日期格式不对';
+  const p=ds.split('-'), y=+p[0], mo=+p[1], d=+p[2];
+  const dt=new Date(y, mo-1, d);
+  if(dt.getFullYear()!==y || dt.getMonth()!==mo-1 || dt.getDate()!==d) return '日期不存在';
+  if(!schPlaceNorm(it.title)) return '缺事项名称';
+  if(!it.notime){
+    const a=schMin(it.start), b=schMin(it.end);
+    if(a==null || b==null) return '时间格式不对（写成 14:00-20:30）';
+    if(b<=a) return '结束时间要晚于开始时间';
+  }
+  return '';
+}
+/* 按「门店首次出现顺序」重新分色 —— 改了地点/事项之后调它 */
+function schImpRecolor(){
+  if(!schImpDraft) return [];
+  const PAL=['blue','green','purple','teal','red'], map={}, order=[];
+  schImpDraft.items.forEach(function(it){
+    const p=schPlaceNorm(it.place);
+    if(p && !map[p]){ map[p]=PAL[order.length % PAL.length]; order.push(p); }
+  });
+  schImpDraft.items.forEach(function(it){
+    it.place=schPlaceNorm(it.place);
+    it.title=schPlaceNorm(it.title);
+    it.color=schImpColor(it.title, it.place, map);
+  });
+  schImpDraft.map=map;
+  return order;
+}
+/* 一行草稿的 HTML（纯函数，回归测试可直接断言） */
+function schImpRowHtml(it, i){
+  const bad=schImpBad(it);
+  const ds=String(it.date==null? '' : it.date).slice(0,10);
+  const p=ds.split('-'), dt=new Date(+p[0], (+p[1])-1, +p[2]);
+  const wd=isNaN(dt.getTime())? '—' : SCH_DAYS[(dt.getDay()+6)%7];
+  const tm=it.notime? '' : ((it.start||'')+(it.end? '-'+it.end : ''));
+  return '<div class="imp-row'+(bad? ' bad':'')+'" id="schImpR'+i+'">'+
+    '<div class="imp-l1">'+
+      '<input type="date" class="imp-inp imp-d" data-i="'+i+'" value="'+esc(ds)+'" onchange="schImpRowDate(this)">'+
+      '<input type="text" class="imp-inp imp-t" id="schImpTm'+i+'" data-i="'+i+'" value="'+esc(tm)+'" '+
+        'placeholder="'+(it.notime? '不显示时间' : '14:00-20:30')+'" onchange="schImpRowTime(this)">'+
+      '<span id="schImpB'+i+'">'+schStoreTag(it.place, it.color)+'</span>'+
+      '<button type="button" class="imp-x" title="删除这一条" onclick="schImpRowDel('+i+')">✕</button>'+
+    '</div>'+
+    '<div class="imp-l2">'+
+      '<input type="text" class="imp-inp" data-i="'+i+'" data-f="place" value="'+esc(it.place||'')+'" '+
+        'placeholder="门店（可空）" onchange="schImpRowEdit(this)">'+
+      '<input type="text" class="imp-inp" data-i="'+i+'" data-f="title" value="'+esc(it.title||'')+'" '+
+        'placeholder="事项" onchange="schImpRowEdit(this)">'+
+      '<span class="imp-w" id="schImpW'+i+'">'+wd+'</span>'+
+    '</div>'+
+    '<div class="imp-err" id="schImpE'+i+'">'+(bad? esc(bad):'')+'</div>'+
+  '</div>';
+}
+function schImpSumHtml(){
+  if(!schImpDraft || !schImpDraft.items.length) return '';
+  const its=schImpDraft.items;
+  const badN=its.filter(function(x){ return !!schImpBad(x); }).length;
+  let h='<b>识别到 '+its.length+' 条</b>';
+  if(badN) h+='<span style="color:#c5543f">（'+badN+' 条还有问题，导入时会跳过）</span>';
+  const st=schStoresOf(its);
+  if(st.length) h+='<span style="margin-left:8px">门店：'+schStoreTags(st)+'</span>';
+  return h;
+}
+function schImpPanelHtml(){
+  if(!schImpDraft) return '';
+  const r=schImpDraft;
+  let h='<div id="schImpSum">'+schImpSumHtml()+'</div>';
+  if(r.items.length) h+='<div class="imp-list">'+r.items.map(schImpRowHtml).join('')+'</div>';
+  if(r.errs && r.errs.length){
+    h+='<div style="margin-top:6px;color:#c5543f">'+r.errs.slice(0,8).map(function(x){ return '· '+esc(x); }).join('<br>')+
+       (r.errs.length>8? '<br>· … 另有 '+(r.errs.length-8)+' 行':'')+'</div>';
+  }
+  if(!r.items.length && !(r.errs && r.errs.length)) h+='<span>粘贴后这里会显示识别结果</span>';
+  return h;
+}
+/* 只按当前草稿重画清单（不重新解析文本）—— 删除条目后必须走这里 */
+function schImpRender(){
+  const pv=$('#schImpPv');
+  if(!pv || !schImpDraft) return null;
+  const h=schImpPanelHtml();
+  pv.innerHTML=h;
+  return h;
+}
+/* 建草稿：把「来源文本」一并记下来，用于判断草稿是否还跟当前文本一致 */
+function schImpMake(text){
+  const r=schImpParse(text);
+  schImpDraft={items:r.items, errs:r.errs, map:r.map||{}, src:String(text==null? '' : text)};
+  return schImpDraft;
+}
+/* 取当前草稿。关键：文本一旦与建草稿时不一样就重建 —— 不能只靠文本框的 input 事件，
+   否则「值变了但没触发事件」（程序性赋值、自动填充、部分输入法）时会拿着过期草稿
+   去导入，等于把已经改掉的内容写进日程。 */
+function schImpEnsure(){
+  const el=$('#schImpT');
+  const txt=el? String(el.value==null? '' : el.value) : '';
+  if(schImpDraft && schImpDraft.src===txt) return schImpDraft;
+  return schImpMake(txt);
+}
+/* 改完一处只刷新派生显示（徽标 / 星期 / 标红 / 计数），不重画清单 —— 重画会丢焦点 */
+function schImpRowSync(i){
+  if(!schImpDraft || !schImpDraft.items[i]) return null;
+  const it=schImpDraft.items[i];
+  schImpRecolor();
+  schImpDraft.items.forEach(function(x, k){
+    const bd=$('#schImpB'+k); if(bd) bd.innerHTML=schStoreTag(x.place, x.color);
+  });
+  const ds=String(it.date==null? '' : it.date).slice(0,10), p=ds.split('-');
+  const dt=new Date(+p[0], (+p[1])-1, +p[2]);
+  const w=$('#schImpW'+i); if(w) w.textContent=isNaN(dt.getTime())? '—' : SCH_DAYS[(dt.getDay()+6)%7];
+  const tm=$('#schImpTm'+i); if(tm) tm.placeholder=it.notime? '不显示时间' : '14:00-20:30';
+  const bad=schImpBad(it);
+  const row=$('#schImpR'+i), e=$('#schImpE'+i);
+  if(row && row.classList){ if(bad) row.classList.add('bad'); else row.classList.remove('bad'); }
+  if(e) e.textContent=bad;
+  const sm=$('#schImpSum'); if(sm) sm.innerHTML=schImpSumHtml();
+  return it;
+}
+function schImpRowEdit(el){
+  const i=+el.getAttribute('data-i'), f=el.getAttribute('data-f');
+  if(!schImpDraft || !schImpDraft.items[i]) return null;
+  schImpDraft.items[i][f]=String(el.value==null? '' : el.value);
+  return schImpRowSync(i);
+}
+function schImpRowDate(el){
+  const i=+el.getAttribute('data-i');
+  if(!schImpDraft || !schImpDraft.items[i]) return null;
+  const it=schImpDraft.items[i];
+  it.date=String(el.value==null? '' : el.value).slice(0,10);
+  const p=it.date.split('-'), dt=new Date(+p[0], (+p[1])-1, +p[2]);
+  if(!isNaN(dt.getTime())) it.day=(dt.getDay()+6)%7+1;
+  return schImpRowSync(i);
+}
+function schImpRowTime(el){
+  const i=+el.getAttribute('data-i');
+  if(!schImpDraft || !schImpDraft.items[i]) return null;
+  const it=schImpDraft.items[i];
+  const v=String(el.value==null? '' : el.value).trim();
+  if(!v){ it.notime=true; it.start=''; it.end=''; }        /* 留空 = 不显示具体时间 */
+  else{
+    const t=schImpTime(v);
+    it.notime=false;
+    if(t){ it.start=schHM(t.s); it.end=schHM(t.e); }
+    else { it.start=''; it.end=''; }   /* 写坏了就标红并在导入时跳过，不静默沿用旧值 */
+  }
+  return schImpRowSync(i);
+}
+function schImpRowDel(i){
+  if(!schImpDraft) return 0;
+  schImpDraft.items.splice(i,1);
+  schImpRender();
+  return schImpDraft.items.length;
+}
+/* 导入后的「撤销」入口。签名对不上就返回 '' —— 即「导入之后又动过安排」，
+   此时撤销会把后来的改动一起抹掉，所以直接不提供。 */
+function schUndoBarHtml(){
+  if(!schUndo) return '';
+  const cur=(store.schedule && store.schedule.items) || [];
+  if(schSig(cur)!==schUndo.sig) return '';
+  return '<div class="sch-undo">'+si('clock','sm')+
+    '<span>刚导入 <b>'+schUndo.added+'</b> 条安排'+
+    (schUndo.cleared? '（原有 '+schUndo.before+' 条已清空）' : '')+
+    '，如果不对可以整批撤回。</span>'+
+    '<button class="btn ghost sm" onclick="schUndoDo()">撤销本次导入</button></div>';
+}
+function schUndoDo(){
+  if(!schUndo) return false;
+  const cur=(store.schedule && store.schedule.items) || [];
+  if(schSig(cur)!==schUndo.sig){ schUndo=null; renderSchedule(); toast('安排已经变动过，不能撤销了'); return false; }
+  if(!store.schedule || typeof store.schedule!=='object') store.schedule={items:[], seeded:true};
+  store.schedule.items=schUndo.items;
+  store.schedule.seeded=schUndo.seeded;
+  const msg=schUndo.cleared? ('已撤销本次导入，原有 '+schUndo.before+' 条安排已还原')
+                           : ('已撤销本次导入，移除 '+schUndo.added+' 条');
+  schUndo=null;
+  save(); renderSchedule(); toast(msg);
+  return true;
+}
 function schImpOpen(){
+  schImpDraft=null;   /* v3.6：每次打开都从新文本重新解析，不带着上次的草稿 */
   const n=((store.schedule&&store.schedule.items)||[]).length;
   let h='<h3>粘贴导入班表</h3>';
   h+='<div style="font-size:12px;color:var(--muted);line-height:1.75;margin-bottom:8px">'+
@@ -4164,7 +4388,10 @@ function schImpOpen(){
      '· 时间段写成 14:00-20:30；地点可省略<br>'+
      '· <b>接货</b>说不准几点去，直接写「日期 地点 接货」不写时间段，列出来只显示「接货」<br>'+
      '· 行尾写 <b># 备注内容</b> 可加备注；空行与 # 开头的整行忽略<br>'+
-     '导入的条目都是「仅某一天」并写明日期：排班表按周换，不会跑到别的周去。'+
+     '导入的条目都是「仅某一天」并写明日期：排班表按周换，不会跑到别的周去。<br>'+
+     '<b>识别出来的条目会先列在下面，日期 / 时间 / 门店 / 事项都能就地改</b>：'+
+     '时间留空表示「不显示具体时间」（接货这类）；有问题的条目会标红，导入时自动跳过。'+
+     '（改了上面的文本会按新文本重新识别，覆盖下面的手工修改。）<br>'+
      '日程表当前已有 '+n+' 条安排。</div>';
   h+='<div class="field"><label>班表文本</label><textarea id="schImpT" rows="9" style="width:100%;font-size:12px" '+
      'placeholder="10/5 周一 14:00-20:30 总统府店 上班&#10;10/5 周一 07:00-10:00 锦创店 上班"></textarea></div>';
@@ -4181,37 +4408,23 @@ function schImpPreview(){
   const el=$('#schImpT'), pv=$('#schImpPv');
   if(!el || !pv) return null;
   const r=schImpParse(el.value);
-  let h;
-  if(!r.items.length && !r.errs.length){ h='粘贴后这里会显示解析结果'; }
-  else{
-    h='<b>识别到 '+r.items.length+' 条</b>';
-    /* v3.4：把识别到的门店列出来 —— 万一「总统府店」写成了「总统府」或多了空格，
-       这里会显示成两个门店（两种颜色），导入前就能看出来并改掉 */
-    const st=schStoresOf(r.items);
-    if(st.length) h+='<span style="margin-left:8px">门店：'+schStoreTags(st)+'</span>';
-    if(r.items.length){
-      h+='<div style="margin-top:4px">'+r.items.slice(0,14).map(function(x){
-        return '<span style="display:inline-block;margin:2px 8px 2px 0">'+x.date.slice(5)+' '+
-          SCH_DAYS[x.day-1]+' '+((x.notime||!x.start)? '—' : x.start+'–'+x.end)+' '+
-          schStoreTag(x.place, x.color)+' '+esc(x.title)+'</span>';
-      }).join('')+(r.items.length>14? ' …':'')+'</div>';
-    }
-    if(r.errs.length){
-      h+='<div style="margin-top:6px;color:#c5543f">'+r.errs.slice(0,6).map(function(x){ return '· '+esc(x); }).join('<br>')+
-         (r.errs.length>6? '<br>· … 另有 '+(r.errs.length-6)+' 行':'')+'</div>';
-    }
-  }
+  /* v3.6：文本框一变就按新文本重建草稿（手工改过的单条会被覆盖，面板顶部已写明） */
+  schImpMake(el.value);
+  const h=schImpPanelHtml();
   pv.innerHTML=h;
   return h;
 }
 function schImpDo(clearFirst){
-  const el=$('#schImpT');
-  const r=schImpParse(el? el.value : '');
-  if(!r.items.length){ toast(r.errs.length? '没有可导入的行，请按下方提示修改' : '先粘贴班表文本'); return; }
+  const d=schImpEnsure();                       /* v3.6：以草稿为准，导入的正是屏幕上看到的那份 */
+  if(!d.items.length){ toast(d.errs.length? '没有可导入的行，请按下方提示修改' : '先粘贴班表文本'); return; }
+  const badN=d.items.filter(function(x){ return !!schImpBad(x); }).length;
+  const okN=d.items.length-badN;
+  if(!okN){ toast('这 '+badN+' 条都还有问题，请先改掉标红的条目'); return; }
   if(clearFirst){
     const n=((store.schedule&&store.schedule.items)||[]).length;
     showModal2('<h3>清空后导入？</h3><p style="color:var(--muted)">会先删除日程表现有的全部 '+n+
-      ' 条安排，再写入这 '+r.items.length+' 条。删除不可撤销。</p>'+
+      ' 条安排，再写入这 '+okN+' 条'+(badN? '（另有 '+badN+' 条标红，会跳过）':'')+
+      '。<b>导入后可以点「撤销本次导入」还原</b>，刷新页面前有效。</p>'+
       '<div class="flex" style="gap:8px;margin-top:14px">'+
       '<button class="btn danger" onclick="schImpApply(true)">确认清空并导入</button>'+
       '<button class="btn ghost" onclick="closeModal2()">取消</button></div>');
@@ -4220,28 +4433,45 @@ function schImpDo(clearFirst){
   schImpApply(false);
 }
 function schImpApply(clearFirst){
-  const el=$('#schImpT');
-  const r=schImpParse(el? el.value : '');
-  if(!r.items.length){ toast('没有可导入的行'); return 0; }
+  const d=schImpEnsure();                       /* v3.6：导入以草稿为准（含手工改过的内容） */
+  if(!d.items.length){ toast('没有可导入的行'); return 0; }
   if(!store.schedule || typeof store.schedule!=='object') store.schedule={items:[], seeded:true};
   if(!Array.isArray(store.schedule.items)) store.schedule.items=[];
+  /* 撤销现场：先留一份「导入前」的整份安排（数组本身不被改动，浅拷贝足够） */
+  const before=store.schedule.items.slice(), beforeSeeded=!!store.schedule.seeded;
+  const src=d.items.slice();
+  const items=src.filter(function(x){ return !schImpBad(x); });   /* 标红的条目不导入 */
+  const badN=src.length-items.length;
+  if(!items.length){ toast('没有可导入的行，请先改掉标红的条目'); return 0; }
   if(clearFirst) store.schedule.items=[];
   const arr=store.schedule.items;
-  const key=function(x){ return x.date+'|'+x.start+'|'+x.end+'|'+(x.title||'')+'|'+(x.place||''); };
+  const key=function(x){ return (x.date||'')+'|'+(x.start||'')+'|'+(x.end||'')+'|'+(x.title||'')+'|'+(x.place||''); };
   const have={};
   arr.forEach(function(x){ if(x && x.date) have[key(x)]=1; });
   let added=0, skip=0;
-  r.items.forEach(function(x){
+  items.forEach(function(x){
     const k=key(x);
     if(have[k]){ skip++; return; }
-    have[k]=1; x.skip=[]; arr.push(x); added++;
+    have[k]=1;
+    x.notime=!!x.notime;
+    if(!Array.isArray(x.skip)) x.skip=[];
+    arr.push(x); added++;
   });
   store.schedule.seeded=true;
   save();
-  if(added && r.items[0].date) schOffset=schOffsetForDate(r.items[0].date);
+  if(added){
+    /* 记住导入后的「结构签名」：之后任何改动都会让签名对不上，撤销入口自动隐藏 */
+    schUndo={items:before, seeded:beforeSeeded, sig:schSig(store.schedule.items),
+             added:added, before:before.length, cleared:!!clearFirst};
+  }
+  if(added && src[0] && src[0].date) schOffset=schOffsetForDate(src[0].date);
   closeModal(); closeModal2();
   renderSchedule();
-  toast('已导入 '+added+' 条'+(skip? '，跳过重复 '+skip+' 条':'')+(r.errs.length? '，另有 '+r.errs.length+' 行未识别':''));
+  let msg='已导入 '+added+' 条';
+  if(skip) msg+='，跳过重复 '+skip+' 条';
+  if(badN) msg+='，跳过有问题 '+badN+' 条';
+  if(d.errs.length) msg+='，另有 '+d.errs.length+' 行未识别';
+  toast(msg);
   return added;
 }
 
@@ -5279,7 +5509,7 @@ const HELP={
   ai:'AI 帮手提供训练安排、护肤方案、英语口语、记账省钱四类能力。点快捷问题或自行输入，回复基于你的本地设定生成，不上传数据。',
   skin:'护肤页除每日打卡外，还有「深度管理」：皮肤诊断、晨晚周护理流程、产品库（点选今日已用）、成分/药品参考、月度预算跟踪。刷酸务必从低浓度、隔天起步。',
   finance:'理财页记录每日储蓄与支出（餐饮/护肤/通勤/零食/额外）。单笔超过“大额提醒阈值”会弹窗劝你三思。月底用「报表」看进度。',
-  schedule:'日程表按周展示每天的时间段与对应事项：按天分块列出每项的起止时间、名称、地点与时长，屏幕窄时无需横向滚动。已过去的日子会<b>自动隐去</b>，只保留今天及以后 —— 跨过今天，那一天的安排就不再展示，避免把过去的排期误当成还要做的事；数据仍完整保留在备份里。翻到已经结束的那一周，会出现「回到本周」的提示。点任意条目即可修改，点「暂无安排」那一行可直接在该天添加，也能用上方「新增事项」指定星期与时段。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。排班表每周都在换、一次十来条，一条条手填太慢 —— 用「粘贴导入班表」把「日期 时间 地点 事项」逐行贴进去，一次全部写完；导入的都是「仅某一天」并写明日期，只落在写明的日期上，不会跑到别的周去，同一天不同门店的班次会自动分色。每家门店的名称都会显示成一枚<b>彩色徽标</b>，紧跟在时间后面，扫一眼就知道这一班在哪家店；每天的抬头与「今日安排」也会直接列出当天要去哪几家店，「本周时间预算」里另有「按门店」一行，写明每家店各占多少小时。门店名只从各条目的「地点」字段取，全站同一个来源、同一处渲染，不会出现两种写法。<b>「接货」这类说不准几点的安排可以不填时间段</b> —— 只显示门店与「接货」二字，几点去自己清楚，写死一个时间反而容易被当成硬性安排；在编辑里勾选「只显示事项，不显示具体时间」即可，粘贴导入时直接写「日期 地点 接货」也行。',
+  schedule:'日程表按周展示每天的时间段与对应事项：按天分块列出每项的起止时间、名称、地点与时长，屏幕窄时无需横向滚动。已过去的日子会<b>自动隐去</b>，只保留今天及以后 —— 跨过今天，那一天的安排就不再展示，避免把过去的排期误当成还要做的事；数据仍完整保留在备份里。翻到已经结束的那一周，会出现「回到本周」的提示。点任意条目即可修改，点「暂无安排」那一行可直接在该天添加，也能用上方「新增事项」指定星期与时段。支持「每周重复」（常规班表、固定课程）与「仅某一天」（临时接货、补课）两种方式；临时不来就点「跳过这一周」，跳过后的安排会以标签形式留在页面上，点一下即可恢复，不会被悄悄删掉。排班表每周都在换、一次十来条，一条条手填太慢 —— 用「粘贴导入班表」把「日期 时间 地点 事项」逐行贴进去，一次全部写完；导入的都是「仅某一天」并写明日期，只落在写明的日期上，不会跑到别的周去，同一天不同门店的班次会自动分色。每家门店的名称都会显示成一枚<b>彩色徽标</b>，紧跟在时间后面，扫一眼就知道这一班在哪家店；每天的抬头与「今日安排」也会直接列出当天要去哪几家店，「本周时间预算」里另有「按门店」一行，写明每家店各占多少小时。门店名只从各条目的「地点」字段取，全站同一个来源、同一处渲染，不会出现两种写法。<b>「接货」这类说不准几点的安排可以不填时间段</b> —— 只显示门店与「接货」二字，几点去自己清楚，写死一个时间反而容易被当成硬性安排；在编辑里勾选「只显示事项，不显示具体时间」即可，粘贴导入时直接写「日期 地点 接货」也行。<b>识别出来的条目会先列成一张可修改的清单</b>：日期、时间、门店、事项都能就地改，改完门店名会自动重新分色，仍有问题的条目会标红并在导入时跳过；导入完成页面上会出现「撤销本次导入」，一次撤回整批改动（还没刷新页面的这段时间里有效）。',
   food:'饮食页只回答一个问题：今天该吃多少。四层从上往下读 —— ① 全天目标：热量、蛋白质、脂肪、碳水，以及安全下限；② 四餐分配：早餐 / 午餐 / 加餐 / 晚餐各自该吃多少克、占全天多少比例；③ 食材换算与餐盘：点选食材进盘，按「份」或按克填报，实时对账当餐还剩多少，也能用剩余额度反推某种食材还能吃多少克；④ 食材库与口径说明。所有数字都由「每日热量缺口」一处派生，改基准只会改一个数，其余自动跟着走。'
 };
 function showHelp(key){
@@ -5298,6 +5528,13 @@ function showUsage(){
 function renderChangelog(){
   let html='<div class="card"><h2>'+si('flag')+'更新日志'+helpBtn('changelog')+'</h2><div class="sub">渡 · 自我蜕变每日成长工作台</div></div>';
   const logs=[
+    {ver:'v3.6',date:'2026-10-08',items:[
+      '导入班表前，识别结果先列成一张<b>可修改的清单</b>：日期、时间、门店、事项都能就地改，不用为了改一个字把整段文本重贴一遍',
+      '清单里改「门店」后会自动重新分色，同一家店始终同色、不同门店必然不同色（与导入时的分色规则同源，不另立一套）',
+      '有问题的条目（日期不存在、时间格式写坏、结束早于开始、缺事项名）会当场标红并写明原因，导入时自动跳过，不会把坏数据写进日程',
+      '时间一栏留空即表示「不显示具体时间」（接货这类）；删条目只重画清单，不会再把刚删的那条变回来',
+      '导入完成后页面上出现「撤销本次导入」，一次撤回整批改动；如果导入之后又动过别的安排，这个入口会自动消失 —— 避免撤销把后来的改动一起抹掉'
+    ]},
     {ver:'v3.5',date:'2026-10-04',items:[
       '「接货」不再要求填时间段：只标注门店与「接货」二字 —— 几点去自己清楚，写死一个时间反而容易被误当成硬性安排',
       '粘贴导入时接货可以只写「日期 地点 接货」，不写时间段；其余行仍要求写明时段，避免把写坏格式的时间（如全角冒号）当成「本来就不用填」而静默放行',
